@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroui/react": "^2.8.2",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
+    "framer-motion": "^12.23.12",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.3",
     "next": "15.4.6",
