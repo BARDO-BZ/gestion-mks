@@ -10,7 +10,9 @@ export default function HomeLayout({
     <html lang="es">
       <body>
         <HeroUIProvider>
-          <main>{children}</main>
+          <main className="text-foreground bg-background w-5/6 mx-auto mt-[2%]">
+            {children}
+          </main>
         </HeroUIProvider>
       </body>
     </html>
