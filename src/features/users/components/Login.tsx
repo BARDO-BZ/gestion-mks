@@ -47,11 +47,11 @@ export function Login() {
         type={isVisible ? "text" : "password"}
         placeholder="Contraseña"
       />
-      <Checkbox defaultSelected className="text-black">
-        Mantener sesión iniciada
+      <Checkbox defaultSelected size="sm" className="mt-4">
+        <p className="text-xs">Mantener sesión iniciada</p>
       </Checkbox>
       <Button type="submit" color="primary">
-        Enviar
+        Ingresar
       </Button>
     </Form>
   );
