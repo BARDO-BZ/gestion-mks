@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroui/react": "^2.8.2",
+    "@heroui/theme": "^2.4.21",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
