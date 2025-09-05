@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Form, Input, Button, Checkbox } from "@heroui/react";
 import { EyeSlashFilledIcon, EyeFilledIcon } from "@/components/Icon";
+
 export function Login() {
-  const [isVisible, setIsVisible] = React.useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [userInfo, setUserInfo] = useState({ email: "", password: "" });
 
   const toggleVisibility = () => setIsVisible(!isVisible);
 
@@ -11,9 +13,7 @@ export function Login() {
     currentTarget: HTMLFormElement | undefined;
   }) => {
     e.preventDefault();
-
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    console.log(data);
+    console.log(userInfo);
   };
 
   return (
@@ -27,6 +27,7 @@ export function Login() {
         name="email"
         type="email"
         placeholder="Email"
+        onValueChange={(e) => setUserInfo({ ...userInfo, email: e })}
       />
       <Input
         required
@@ -46,6 +47,7 @@ export function Login() {
         }
         type={isVisible ? "text" : "password"}
         placeholder="Contraseña"
+        onValueChange={(e) => setUserInfo({ ...userInfo, password: e })}
       />
       <Checkbox defaultSelected size="sm" className="mt-4">
         <p className="text-xs">Mantener sesión iniciada</p>
