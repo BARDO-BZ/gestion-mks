@@ -1,19 +1,36 @@
+"use client";
+
 import React, { useState } from "react";
 import { Form, Input, Button, Checkbox } from "@heroui/react";
 import { EyeSlashFilledIcon, EyeFilledIcon } from "@/components/Icon";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Login() {
   const [isVisible, setIsVisible] = useState(false);
   const [userInfo, setUserInfo] = useState({ email: "", password: "" });
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const { login } = useAuth();
 
   const toggleVisibility = () => setIsVisible(!isVisible);
 
-  const onSubmit = (e: {
+  const onSubmit = async (e: {
     preventDefault: () => void;
     currentTarget: HTMLFormElement | undefined;
   }) => {
     e.preventDefault();
-    console.log(userInfo);
+    setLoading(true);
+    setError("");
+
+    try {
+      await login(userInfo.email, userInfo.password, rememberMe);
+    } catch (err: any) {
+      setError(err.message || "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -21,22 +38,34 @@ export function Login() {
       className="w-full flex flex-col items-stretch mt-8"
       onSubmit={onSubmit}
     >
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
       <Input
         isRequired
         errorMessage="Por favor ingresá un email válido"
         name="email"
         type="email"
         placeholder="Email"
+        value={userInfo.email}
         onValueChange={(e) => setUserInfo({ ...userInfo, email: e })}
+        isDisabled={loading}
       />
+
       <Input
         required
+        name="password"
+        value={userInfo.password}
         endContent={
           <button
             aria-label="toggle password visibility"
             className="focus:outline-solid outline-transparent"
             type="button"
             onClick={toggleVisibility}
+            disabled={loading}
           >
             {isVisible ? (
               <EyeSlashFilledIcon className="text-2xl text-default-400 pointer-events-none" />
@@ -48,12 +77,26 @@ export function Login() {
         type={isVisible ? "text" : "password"}
         placeholder="Contraseña"
         onValueChange={(e) => setUserInfo({ ...userInfo, password: e })}
+        isDisabled={loading}
       />
-      <Checkbox defaultSelected size="sm" className="mt-4">
+
+      <Checkbox
+        isSelected={rememberMe}
+        onValueChange={setRememberMe}
+        size="sm"
+        className="mt-4"
+        isDisabled={loading}
+      >
         <p className="text-xs">Mantener sesión iniciada</p>
       </Checkbox>
-      <Button type="submit" color="primary">
-        Ingresar
+
+      <Button
+        type="submit"
+        color="primary"
+        isLoading={loading}
+        isDisabled={loading}
+      >
+        {loading ? "Ingresando..." : "Ingresar"}
       </Button>
     </Form>
   );

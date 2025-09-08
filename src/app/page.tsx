@@ -13,7 +13,6 @@ export default function Home() {
         height={500}
         alt="MKS - Protección radiológica"
       />
-
       <div className="w-full max-w-md mx-auto">
         <Tabs
           aria-label="Options"
