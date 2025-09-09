@@ -1,4 +1,4 @@
-import { logoutHandler } from "@/features/users/api/logout";
+import { logoutHandler } from "@/features/users/api";
 
 export async function POST() {
   return logoutHandler();

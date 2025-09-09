@@ -1,39 +1,42 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import connection from "@/lib/db";
 import { IExistingUser } from "@/features/users/interfaces";
 
-export async function registerHandler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export async function registerHandler(req: NextRequest) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Método no permitido" });
+    return NextResponse.json(
+      { message: "Método no permitido" },
+      { status: 405 }
+    );
   }
 
-  const { email, password, name, lastName, role = "client" } = req.body;
+  const { email, password, name, lastName, role = "client" } = await req.json();
 
   // Validación básica
   if (!email || !password || !name || !lastName) {
-    return res.status(400).json({
-      message: "Todos los campos son requeridos",
-    });
+    return NextResponse.json(
+      { message: "Todos los campos son requeridos" },
+      { status: 400 }
+    );
   }
 
   // Validar formato de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    return res.status(400).json({
-      message: "Formato de email inválido",
-    });
+    return NextResponse.json(
+      { message: "Formato de email inválido" },
+      { status: 400 }
+    );
   }
 
   // Validar contraseña (mínimo 8 caracteres)
   if (password.length < 8) {
-    return res.status(400).json({
-      message: "La contraseña debe tener al menos 8 caracteres",
-    });
+    return NextResponse.json(
+      { message: "La contraseña debe tener al menos 8 caracteres" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -44,9 +47,10 @@ export async function registerHandler(
     );
 
     if (existingUsers.length > 0) {
-      return res.status(409).json({
-        message: "El usuario ya existe",
-      });
+      return NextResponse.json(
+        { message: "El usuario ya existe" },
+        { status: 409 }
+      );
     }
 
     // Hashear contraseña
@@ -75,29 +79,36 @@ export async function registerHandler(
     );
 
     // Configurar cookie
-    res.setHeader("Set-Cookie", [
-      `token=${token}; HttpOnly; Path=/; Max-Age=${
-        24 * 60 * 60
-      }; SameSite=Strict${
-        process.env.NODE_ENV === "production" ? "; Secure" : ""
-      }`,
-    ]);
-
-    res.status(201).json({
-      message: "Usuario registrado exitosamente",
-      user: {
-        id: userId,
-        email,
-        name,
-        lastName,
-        role,
-        status: "active",
+    const response = NextResponse.json(
+      {
+        message: "Usuario registrado exitosamente",
+        user: {
+          id: userId,
+          email,
+          name,
+          lastName,
+          role,
+          status: "active",
+        },
       },
+      { status: 201 }
+    );
+
+    // Setear cookie en NextResponse
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
     });
+
+    return response;
   } catch (error) {
     console.error("Error en registro:", error);
-    res.status(500).json({
-      message: "Error interno del servidor",
-    });
+    return NextResponse.json(
+      { message: "Error interno del servidor" },
+      { status: 500 }
+    );
   }
 }
