@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,6 +12,7 @@ export function useRequireRole(
 ) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [redirected, setRedirected] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -18,18 +21,17 @@ export function useRequireRole(
         : [requiredRoles];
 
       if (!roles.includes(user.role)) {
-        router.push(redirectTo);
+        router.replace(redirectTo);
+        setRedirected(true);
       }
     }
   }, [user, loading, router, requiredRoles, redirectTo]);
 
-  return {
-    user,
-    loading,
-    hasAccess: user
-      ? Array.isArray(requiredRoles)
-        ? requiredRoles.includes(user.role)
-        : user.role === requiredRoles
-      : false,
-  };
+  const hasAccess = user
+    ? Array.isArray(requiredRoles)
+      ? requiredRoles.includes(user.role)
+      : user.role === requiredRoles
+    : false;
+
+  return { user, loading, hasAccess, redirected };
 }

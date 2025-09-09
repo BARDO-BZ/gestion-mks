@@ -8,7 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { IUser } from "@/features/users/interfaces/user";
+import { IUser, IRegisterData } from "@/features/users/interfaces";
 
 interface AuthContextType {
   user: IUser | null;
@@ -19,16 +19,8 @@ interface AuthContextType {
     rememberMe?: boolean
   ) => Promise<void>;
   logout: () => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
+  register: (userData: IRegisterData) => Promise<void>;
   isAuthenticated: boolean;
-}
-
-interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-  lastName: string;
-  role?: "admin" | "staff" | "client";
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -109,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (userData: RegisterData) => {
+  const register = async (userData: IRegisterData) => {
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",

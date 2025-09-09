@@ -5,8 +5,18 @@ export interface IUser extends RowDataPacket {
   email: string;
   password_hash: string;
   status: "active" | "blocked" | "archived" | "pending";
-  role: "admin" | "staff" | "client";
+  role: TUserRole;
   name: string;
   lastName: string;
   last_login: Date | null;
 }
+
+export interface IRegisterData {
+  email: string;
+  password: string;
+  name: string;
+  lastName: string;
+  role?: TUserRole;
+}
+
+export type TUserRole = "admin" | "staff" | "client";
