@@ -2,14 +2,9 @@ import { NextApiRequest, NextApiResponse } from "next";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import connection from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import { IExistingUser } from "@/features/users/interfaces";
 
-interface ExistingUser extends RowDataPacket {
-  id: number;
-  email: string;
-}
-
-export default async function handler(
+export async function registerHandler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -43,7 +38,7 @@ export default async function handler(
 
   try {
     // Verificar si el usuario ya existe
-    const [existingUsers] = await connection.execute<ExistingUser[]>(
+    const [existingUsers] = await connection.execute<IExistingUser[]>(
       "SELECT id, email FROM users WHERE email = ?",
       [email]
     );
