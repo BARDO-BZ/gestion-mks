@@ -4,3 +4,4 @@ export * from "./forgotPassword";
 export * from "./logout";
 export * from "./me";
 export * from "./register";
+export * from "./activate";

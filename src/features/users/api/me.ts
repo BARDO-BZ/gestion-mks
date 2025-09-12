@@ -20,7 +20,7 @@ export async function meHandler(req: NextRequest) {
 
     // Obtener datos actualizados del usuario
     const [rows] = await connection.execute<IUser[]>(
-      `SELECT id, email, name, lastName, role, status, last_login, created_at, updated_at 
+      `SELECT id, email, name, last_name, role, status, last_login, created_at, updated_at 
        FROM users 
        WHERE id = ? AND status = "active"`,
       [decoded.userId]
