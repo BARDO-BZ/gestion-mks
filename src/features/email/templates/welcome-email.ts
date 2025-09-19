@@ -4,7 +4,7 @@ export function generateWelcomeEmail(userData: {
   activationToken?: string;
 }) {
   const { name, activationToken } = userData;
-  const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}`;
+  const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/activate?token=${activationToken}`;
 
   const html = `
     <!DOCTYPE html>
@@ -18,7 +18,7 @@ export function generateWelcomeEmail(userData: {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
           line-height: 1.6;
           color: #333;
-          max-width: 600px;
+          max-width: 600px !important;
           margin: 0 auto;
           padding: 20px;
           background-color: #f5f5f5;
@@ -26,8 +26,10 @@ export function generateWelcomeEmail(userData: {
         .container {
           background-color: white;
           padding: 40px;
+          width: 600px;
           border-radius: 8px;
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          margin: 0 auto
         }
         .header {
           text-align: center;
@@ -51,7 +53,7 @@ export function generateWelcomeEmail(userData: {
         .button {
           display: inline-block;
           background-color: #0070f3;
-          color: white;
+          color: white !important;
           text-decoration: none;
           padding: 12px 30px;
           border-radius: 6px;
@@ -82,19 +84,19 @@ export function generateWelcomeEmail(userData: {
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">Tu Plataforma</div>
-          <p>Sistema de gestión empresarial</p>
+          <div class="logo"><img alt="logo mks" src="https://cdn.prod.website-files.com/660d7fca91383b16cdb39a16/660dbaeddcb1d77a21d49e0e_Logo.png" width="100"/></div>
+          <p>Sistema de gestión</p>
         </div>
         
         <h1 class="title">¡Bienvenido, ${name}!</h1>
         
         <div class="content">
-          <p>Gracias por registrarte en nuestra plataforma. Estamos emocionados de tenerte como parte de nuestra comunidad.</p>
+          <p>Gracias por registrarte en nuestra plataforma.</p>
           
           ${
             activationToken
               ? `
-            <p>Para completar tu registro y activar tu cuenta, por favor haz clic en el siguiente botón:</p>
+            <p>Para completar tu registro y activar tu cuenta, por favor hacé clic en el siguiente botón:</p>
             
             <div style="text-align: center;">
               <a href="${activationUrl}" class="button">Activar mi cuenta</a>
@@ -110,7 +112,7 @@ export function generateWelcomeEmail(userData: {
             </div>
           `
               : `
-            <p>Tu cuenta ha sido activada exitosamente y ya puedes comenzar a usar todas las funcionalidades de la plataforma.</p>
+            <p>Tu cuenta ha sido activada exitosamente y ya podés comenzar a usar todas las funcionalidades de la plataforma.</p>
             
             <div style="text-align: center;">
               <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" class="button">Iniciar sesión</a>
@@ -118,15 +120,7 @@ export function generateWelcomeEmail(userData: {
           `
           }
           
-          <h3>¿Qué puedes hacer ahora?</h3>
-          <ul>
-            <li>Explorar todas las funcionalidades disponibles</li>
-            <li>Configurar tu perfil personalizado</li>
-            <li>Conectar con otros usuarios</li>
-            <li>Acceder a nuestros recursos y herramientas</li>
-          </ul>
-          
-          <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos respondiendo a este email.</p>
+          <p>Si tenés alguna pregunta o necesitás ayuda, no dudes en contactarnos.</p>
         </div>
         
         <div class="footer">

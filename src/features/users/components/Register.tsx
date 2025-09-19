@@ -13,6 +13,7 @@ export function Register() {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -61,6 +62,7 @@ export function Register() {
     }
 
     setIsSubmitting(true);
+    setErrors({}); // Limpiar errores previos
 
     try {
       await register({
@@ -69,8 +71,10 @@ export function Register() {
         lastName: userInfo.lastName,
         password: userInfo.password,
       });
+
+      // Si el registro es exitoso, mostrar mensaje de éxito
+      setRegistrationSuccess(true);
     } catch (error: any) {
-      // El error se maneja en el AuthContext
       console.error("Error en registro:", error);
       setErrors({
         submit: error.message || "Error al registrar usuario",
@@ -89,6 +93,65 @@ export function Register() {
         setErrors({ ...errors, [field]: "" });
       }
     };
+
+  // Si el registro fue exitoso, mostrar mensaje de validación
+  if (registrationSuccess) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center mt-8 text-center">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-8 max-w-md">
+          <div className="mb-4">
+            <svg
+              className="mx-auto h-16 w-16 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+
+          <h2 className="text-xl font-semibold text-green-800 mb-3">
+            ¡Registro exitoso!
+          </h2>
+
+          <p className="text-green-700 mb-4">
+            Hemos enviado un correo de verificación a{" "}
+            <span className="font-medium">{userInfo.email}</span>
+          </p>
+
+          <p className="text-green-600 text-sm mb-6">
+            Por favor, revisa tu bandeja de entrada y haz clic en el enlace de
+            verificación para activar tu cuenta.
+          </p>
+
+          <div className="space-y-3">
+            <Button as="a" href="/login" color="primary" className="w-full">
+              Ir al inicio de sesión
+            </Button>
+
+            <p className="text-xs text-gray-500">
+              ¿No recibiste el correo? Revisa tu carpeta de spam o{" "}
+              <button
+                className="text-primary hover:underline"
+                onClick={() => {
+                  // Aquí podrías agregar lógica para reenviar el email
+                  console.log("Reenviar email de verificación");
+                }}
+              >
+                solicita uno nuevo
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form

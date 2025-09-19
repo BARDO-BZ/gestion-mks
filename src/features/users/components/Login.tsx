@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Form, Input, Button, Checkbox } from "@heroui/react";
+import { Form, Input, Button, Checkbox, Alert } from "@heroui/react";
 import { EyeSlashFilledIcon, EyeFilledIcon } from "@/components/Icon";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -39,8 +39,12 @@ export function Login() {
       onSubmit={onSubmit}
     >
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+        <div className="flex items-center justify-center w-full">
+          <div className="flex flex-col w-full">
+            <div className="w-full flex items-center my-3">
+              <Alert color="danger" title={error} />
+            </div>
+          </div>
         </div>
       )}
 
