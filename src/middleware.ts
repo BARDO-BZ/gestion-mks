@@ -1,70 +1,47 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import { jwtVerify } from "jose";
 
-// Rutas que requieren autenticación
-const protectedRoutes = [
-  "/dashboard",
-  "/profile",
-  "/admin",
-  // Agregar más rutas según necesites
-];
-
-// Rutas que solo pueden acceder usuarios NO autenticados
+const protectedRoutes = ["/dashboard", "/profile", "/admin"];
 const authRoutes = ["/login", "/register", "/forgot-password"];
 
-export function middleware(request: NextRequest) {
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+async function isValidToken(token?: string) {
+  if (!token) return false;
+  try {
+    await jwtVerify(token, secret); // HS256 por defecto
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isAuth = authRoutes.some((r) => pathname.startsWith(r));
 
-  // Verificar si es una ruta protegida
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const valid = await isValidToken(token);
 
-  // Verificar si es una ruta de autenticación
-  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
-
-  // Si no hay token y es una ruta protegida, redirigir al home
-  if (isProtectedRoute && !token) {
+  if (isProtected && !valid) {
     const loginUrl = new URL("/", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set(
+      "redirect",
+      pathname + (searchParams ? `?${searchParams}` : "")
+    );
     return NextResponse.redirect(loginUrl);
   }
 
-  // Si hay token, verificar su validez
-  if (token) {
-    try {
-      jwt.verify(token, process.env.JWT_SECRET!);
-
-      // Si el token es válido y el usuario está intentando acceder a la página principal,
-      // redirigir al dashboard
-      if (pathname === "/") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-    } catch (error) {
-      // Si el token es inválido, eliminarlo y redirigir si es ruta protegida
-      const response = NextResponse.redirect(new URL("/", request.url));
-      response.cookies.delete("token");
-
-      if (isProtectedRoute) {
-        return response;
-      }
-    }
+  if (valid && (pathname === "/" || isAuth)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

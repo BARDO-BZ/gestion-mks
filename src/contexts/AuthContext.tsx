@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
 
       // Redirigir al dashboard
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       console.error("Error en login:", error);
       throw error;
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setUser(null);
-      router.push("/login");
+      router.push("/");
     } catch (error) {
       console.error("Error en logout:", error);
     }
