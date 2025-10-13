@@ -2,10 +2,8 @@
 
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navigation/Navbar";
-import { Button } from "@heroui/react";
 
-export default function Dashboard() {
+export default function EPP() {
   const { user, logout, loading } = useAuth();
 
   if (loading) {

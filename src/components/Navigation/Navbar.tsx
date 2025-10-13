@@ -3,41 +3,29 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Button, User, Tooltip } from "@heroui/react";
+import { Button, User as UserUI, Tooltip } from "@heroui/react";
 import { LogoutIcon } from "@/components/Icon";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
-function Navbar() {
+export default function Navbar() {
   const pathname = usePathname();
   const { user, logout, loading } = useAuth();
 
   const role = user?.role === "admin" ? "admin" : "client";
 
-  console.log("user", user);
-
-  const linksAdmin = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/admin/epp", label: "EPP" },
-    { href: "/admin/inspections", label: "Inspecciones" },
-    { href: "/admin/reports", label: "Reportes" },
-    { href: "/admin/settings", label: "Configuración" },
+  const baseLinks = [
+    { href: "/dashboard", label: "Dashboard", show: true },
+    { href: "/epp", label: "EPP", show: true },
+    { href: "/inspections", label: "Inspecciones", show: true },
+    { href: "/reports", label: "Reportes", show: true },
+    { href: "/settings", label: "Configuración", show: role === "admin" },
   ];
 
-  const linksClient = [
-    { href: "/client/dashboard", label: "Inicio" },
-    { href: "/client/epp", label: "Mis EPP" },
-    { href: "/client/inspections", label: "Revisiones" },
-    { href: "/client/alerts", label: "Alertas" },
-  ];
-
-  const links = role === "admin" ? linksAdmin : linksClient;
+  const links = baseLinks.filter((l) => l.show);
 
   return (
-    <div
-      className="w-[18%] pl-[32px] pr-[32px] pt-[2%] flex flex-col h-[98vh] justify-between"
-      style={{ borderRight: "1px solid #D4DDE4" }}
-    >
+    <aside className="w-[18%] pl-8 pr-8 pt-6 flex flex-col h-[98vh] justify-between border-r border-gray-200">
       <div>
         <Image
           src="/logo.png"
@@ -47,9 +35,8 @@ function Navbar() {
           className="mx-auto"
         />
 
-        <div className="flex flex-col mt-[32px] gap-2">
+        <nav className="flex flex-col mt-8 gap-2">
           {links.map((link) => {
-            // marca activo también en subrutas (e.g. /admin/epp/123)
             const isActive =
               pathname === link.href || pathname.startsWith(link.href + "/");
             return (
@@ -62,28 +49,38 @@ function Navbar() {
               </Link>
             );
           })}
-        </div>
+        </nav>
       </div>
 
       <div className="flex flex-col gap-4">
-        <Button size="sm">Tutoriales</Button>
+        <Button size="sm" variant="flat">
+          Tutoriales
+        </Button>
 
         <div className="flex items-center justify-between">
-          <User
-            avatarProps={{
-              src: "",
-            }}
-            name={`${user?.name ?? ""} ${user?.last_name ?? ""}`.trim() || "U"}
+          <UserUI
+            name={
+              loading
+                ? "Cargando..."
+                : `${user?.name ?? ""} ${user?.lastName ?? ""}`.trim() ||
+                  user?.email ||
+                  "Usuario"
+            }
+            description={!loading ? user?.email : undefined}
           />
-          <button type="button" onClick={logout} aria-label="Cerrar sesión">
+
+          <button
+            type="button"
+            onClick={logout}
+            aria-label="Cerrar sesión"
+            className="text-gray-500 hover:text-gray-800"
+          >
             <Tooltip content="Cerrar sesión" placement="top-end" size="sm">
               <LogoutIcon />
             </Tooltip>
           </button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }
-
-export default Navbar;
