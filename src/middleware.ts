@@ -4,14 +4,16 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const protectedRoutes = ["/dashboard", "/profile", "/admin"];
-const authRoutes = ["/login", "/register", "/forgot-password"];
+// Rutas "solo para no autenticados" (login/register). OJO: NO incluir /reset-password acá.
+const authRoutes = ["/"];
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+const jwtSecret = process.env.JWT_SECRET;
+const secret = jwtSecret ? new TextEncoder().encode(jwtSecret) : undefined;
 
 async function isValidToken(token?: string) {
-  if (!token) return false;
+  if (!token || !secret) return false;
   try {
-    await jwtVerify(token, secret); // HS256 por defecto
+    await jwtVerify(token, secret); // HS256 por defecto (match con jsonwebtoken)
     return true;
   } catch {
     return false;
@@ -20,22 +22,27 @@ async function isValidToken(token?: string) {
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-  const { pathname, searchParams } = request.nextUrl;
-  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
-  const isAuth = authRoutes.some((r) => pathname.startsWith(r));
+  const { pathname } = request.nextUrl;
+  const search = request.nextUrl.search; // incluye el "?" si existe
 
+  // 1) Dejar pasar siempre la página pública de reset con token
+  if (pathname.startsWith("/reset-password")) {
+    return NextResponse.next();
+  }
+
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isAuth = authRoutes.some((r) => pathname === r); // match exacto para "/"
   const valid = await isValidToken(token);
 
+  // 2) Si intenta entrar a una ruta protegida sin token válido → al login (con redirect)
   if (isProtected && !valid) {
     const loginUrl = new URL("/", request.url);
-    loginUrl.searchParams.set(
-      "redirect",
-      pathname + (searchParams ? `?${searchParams}` : "")
-    );
+    loginUrl.searchParams.set("redirect", `${pathname}${search || ""}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (valid && (pathname === "/" || isAuth)) {
+  // 3) Si ya está autenticado y visita una ruta de auth (ej. "/") → al dashboard
+  if (valid && isAuth) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
