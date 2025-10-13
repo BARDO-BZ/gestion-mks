@@ -7,3 +7,32 @@
 @theme inline {
   --font-sans: var(--font-inter);
 }
+
+body {
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.nav-link {
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  display: block;
+  transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+  background-color: #d4dde4;
+}
+
+.nav-link-active {
+  background-color: #3b82f6; /* Tailwind blue-500 */
+  color: white;
+}
+
+@media screen and (max-width: 600px) {
+  body {
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+}

@@ -7,7 +7,7 @@ export interface IUser extends RowDataPacket {
   status: "active" | "blocked" | "archived" | "pending";
   role: TUserRole;
   name: string;
-  lastName: string;
+  last_name: string;
   last_login: Date | null;
 }
 

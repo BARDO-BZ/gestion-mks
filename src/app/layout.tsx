@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="light">
       <body
-        className={`${inter.variable} font-sans bg-background text-foreground mx-auto w-[90vw] max-w-[1366px] mt-[2%]`}
+        className={`${inter.variable} font-sans bg-background text-foreground mx-auto w-[100vw] max-w-[1440px]`}
       >
         <Providers>{children}</Providers>
       </body>
