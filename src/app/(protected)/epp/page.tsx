@@ -22,5 +22,5 @@ export default function EPP() {
     );
   }
 
-  return <div></div>;
+  return <div className="h-100%">epp</div>;
 }
