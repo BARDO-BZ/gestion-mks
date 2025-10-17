@@ -3,7 +3,7 @@
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function Dashboard() {
+export default function Settings() {
   const { user, logout, loading } = useAuth();
 
   if (loading) {
@@ -22,5 +22,5 @@ export default function Dashboard() {
     );
   }
 
-  return <div>dashboard</div>;
+  return <div>configuracion</div>;
 }
