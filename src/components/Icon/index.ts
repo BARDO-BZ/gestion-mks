@@ -1,3 +1,9 @@
 export { EyeFilledIcon } from "./EyeFilledIcon";
 export { EyeSlashFilledIcon } from "./EyeSlashFilledIcon";
 export { LogoutIcon } from "./LogoutIcon";
+export { DashboardIcon } from "./DashboardIcon";
+export { ShieldIcon } from "./ShieldIcon";
+export { InspectionIcon } from "./InspectionIcon";
+export { FileIcon } from "./FileIcon";
+export { SettingsIcon } from "./SettingsIcon";
+export { HelpIcon } from "./HelpIcon";
