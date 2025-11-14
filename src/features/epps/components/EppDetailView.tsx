@@ -35,6 +35,13 @@ interface Epp {
   status: "APPROVED" | "RESERVED" | "TO_DISCARD" | "DISCARDED";
   created_at: string;
   updated_at: string;
+
+  computed_status?: Epp["status"];
+  needs_status_update?: boolean;
+  inspection_overdue?: boolean;
+  next_inspection_at?: string | null;
+  open_tasks_count?: number;
+  last_inspection_at?: string | null;
 }
 
 interface EppLog {
@@ -58,6 +65,9 @@ export function EppDetailView({ id }: Props) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [inspectionsKey, setInspectionsKey] = useState(0);
 
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
   const [tasksKey, setTasksKey] = useState(0);
   const handleTaskUpdated = () => {
     setTasksKey((prev) => prev + 1);
@@ -69,6 +79,33 @@ export function EppDetailView({ id }: Props) {
     setInspectionsKey((prev) => prev + 1);
     // refresca EPP (estado) y logs
     fetchEpp();
+  };
+
+  const handleApplySuggestedStatus = async () => {
+    if (!epp?.computed_status) return;
+    setUpdatingStatus(true);
+    setStatusError(null);
+
+    try {
+      const res = await fetch(`/api/epps/${id}/status`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useComputed: true }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Error al actualizar el estado");
+      }
+
+      await fetchEpp();
+    } catch (err: any) {
+      console.error(err);
+      setStatusError(err.message ?? "Error inesperado");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   const fetchEpp = async () => {
@@ -125,17 +162,22 @@ export function EppDetailView({ id }: Props) {
     );
   }
 
-  const fabricationLabel = `${epp.fabrication_month}/${epp.fabrication_year}`;
-  const caducidadLabel = `${epp.caducidad_month}/${epp.caducidad_year}`;
-  const inspectionLabel =
-    epp.inspection_freq === "ANNUAL" ? "Anual" : "Semestral";
-
   const statusLabelMap: Record<Epp["status"], string> = {
     APPROVED: "Aprobado",
     RESERVED: "Uso bajo reserva",
     TO_DISCARD: "A descartar",
     DISCARDED: "Descartado",
   };
+
+  const fabricationLabel = `${epp.fabrication_month}/${epp.fabrication_year}`;
+  const caducidadLabel = `${epp.caducidad_month}/${epp.caducidad_year}`;
+  const inspectionLabel =
+    epp.inspection_freq === "ANNUAL" ? "Anual" : "Semestral";
+
+  const computedStatus = epp.computed_status ?? epp.status;
+  const needsStatusUpdate = epp.needs_status_update;
+  const openTasksCount = epp.open_tasks_count ?? 0;
+  const inspectionOverdue = epp.inspection_overdue;
 
   return (
     <div className="p-6 flex flex-col gap-6">
@@ -150,18 +192,75 @@ export function EppDetailView({ id }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
-          <CardHeader className="flex justify-between items-center">
-            <div>
-              <p className="text-sm text-default-400">Estado actual</p>
+          <CardHeader className="flex justify-between items-start gap-4">
+            <div className="flex-1">
+              <p className="text-sm text-default-400">
+                Estado actual (guardado)
+              </p>
               <p className="text-lg font-semibold">
                 {statusLabelMap[epp.status]}
               </p>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span className="px-2 py-1 rounded-full bg-default-100">
+                  Estado calculado:{" "}
+                  <span className="font-semibold">
+                    {statusLabelMap[computedStatus]}
+                  </span>
+                </span>
+
+                {needsStatusUpdate && (
+                  <span className="px-2 py-1 rounded-full bg-warning-100 text-warning-700">
+                    Sugerencia: actualizar estado
+                  </span>
+                )}
+
+                {inspectionOverdue && (
+                  <span className="px-2 py-1 rounded-full bg-danger-100 text-danger-700">
+                    Inspección vencida
+                  </span>
+                )}
+
+                {openTasksCount > 0 && (
+                  <span className="px-2 py-1 rounded-full bg-warning-100 text-warning-700">
+                    Tareas abiertas: {openTasksCount}
+                  </span>
+                )}
+              </div>
+
+              {statusError && (
+                <p className="text-xs text-red-500 mt-2">{statusError}</p>
+              )}
             </div>
-            <div className="text-right text-sm text-default-400">
-              <p>Creado: {new Date(epp.created_at).toLocaleString()}</p>
-              <p>Actualizado: {new Date(epp.updated_at).toLocaleString()}</p>
+
+            <div className="flex flex-col items-end gap-2 text-right text-sm text-default-400">
+              <div>
+                <p>Creado: {new Date(epp.created_at).toLocaleString()}</p>
+                <p>Actualizado: {new Date(epp.updated_at).toLocaleString()}</p>
+                {epp.last_inspection_at && (
+                  <p>
+                    Última inspección:{" "}
+                    {new Date(epp.last_inspection_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {needsStatusUpdate && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  variant="flat"
+                  onPress={handleApplySuggestedStatus}
+                  isDisabled={updatingStatus}
+                >
+                  {updatingStatus
+                    ? "Actualizando..."
+                    : "Aplicar estado sugerido"}
+                </Button>
+              )}
             </div>
           </CardHeader>
+
           <Divider />
           <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="flex flex-col gap-1">
