@@ -10,6 +10,7 @@ import {
   Divider,
   Spinner,
 } from "@heroui/react";
+import { EppLogs } from "./EppLogs";
 
 interface Epp {
   id: number;
@@ -199,6 +200,10 @@ export function EppDetailView({ id }: Props) {
             ))}
           </CardBody>
         </Card>
+        <div className="flex flex-col gap-3 mt-4">
+          <h2 className="text-xl font-semibold">Actividad</h2>
+          <EppLogs id={id} />
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
-import { getEppHandler } from "@/features/epps/api";
+import { getEppHandler } from "@/features/epps/api/getEPP";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  return getEppHandler(req, params.id);
+  const { id } = await context.params;
+
+  return getEppHandler(req, id);
 }
