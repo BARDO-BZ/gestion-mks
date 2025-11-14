@@ -1,10 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
-import { getAuthUser } from "./getAuthUser";
+import jwt from "jsonwebtoken";
+import { IJWTPayload } from "@/features/users/interfaces";
 
-/**
- * GET /api/epps → listado con filtros básicos
- */
+async function getAuthUser(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as IJWTPayload;
+
+    const [rows]: any = await connection.execute(
+      `SELECT id, email, name, last_name, role, status
+       FROM users
+       WHERE id = ? AND status = "active"`,
+      [decoded.userId]
+    );
+
+    if (!rows || rows.length === 0) return null;
+
+    return rows[0];
+  } catch {
+    return null;
+  }
+}
+
 export async function listEppsHandler(req: NextRequest) {
   try {
     const user = await getAuthUser(req);
@@ -23,59 +43,66 @@ export async function listEppsHandler(req: NextRequest) {
     const status = searchParams.get("status") || "";
     const search = searchParams.get("search") || "";
 
-    const whereClauses: string[] = [];
-    const params: any[] = [];
+    const whereParts: string[] = [];
+    const values: any[] = [];
 
     if (institution) {
-      whereClauses.push("institution LIKE ?");
-      params.push(`%${institution}%`);
+      whereParts.push("institution LIKE ?");
+      values.push(`%${institution}%`);
     }
     if (branch) {
-      whereClauses.push("branch LIKE ?");
-      params.push(`%${branch}%`);
+      whereParts.push("branch LIKE ?");
+      values.push(`%${branch}%`);
     }
     if (service) {
-      whereClauses.push("service LIKE ?");
-      params.push(`%${service}%`);
+      whereParts.push("service LIKE ?");
+      values.push(`%${service}%`);
     }
     if (status) {
-      whereClauses.push("status = ?");
-      params.push(status);
+      whereParts.push("status = ?");
+      values.push(status);
     }
     if (search) {
-      whereClauses.push(
+      whereParts.push(
         "(code LIKE ? OR institution LIKE ? OR branch LIKE ? OR service LIKE ?)"
       );
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     const whereSql =
-      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+      whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
 
     // total
     const [countRows]: any = await connection.execute(
       `SELECT COUNT(*) as total FROM epps ${whereSql}`,
-      params
+      values
     );
     const total = countRows[0]?.total ?? 0;
 
-    // data
-    const offset = (page - 1) * pageSize;
-    const [rows]: any = await connection.execute(
-      `SELECT * FROM epps
-       ${whereSql}
-       ORDER BY created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset]
-    );
+    // calculamos limit/offset con fallback seguro
+    const safePageSize =
+      Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 20;
+    const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+    const offset = (safePage - 1) * safePageSize;
+
+    // 🚨 acá VA INTERPOLADO, no con ?
+    const sqlData = `
+      SELECT *
+      FROM epps
+      ${whereSql}
+      ORDER BY created_at DESC
+      LIMIT ${safePageSize} OFFSET ${offset}
+    `;
+
+    const [rows]: any = await connection.execute(sqlData, values);
 
     return NextResponse.json({
       data: rows,
       pagination: {
-        page,
-        pageSize,
+        page: safePage,
+        pageSize: safePageSize,
         total,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(total / safePageSize),
       },
     });
   } catch (error) {

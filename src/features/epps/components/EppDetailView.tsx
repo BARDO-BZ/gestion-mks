@@ -1,0 +1,205 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Divider,
+  Spinner,
+} from "@heroui/react";
+
+interface Epp {
+  id: number;
+  code: string;
+  institution: string;
+  branch: string;
+  service: string;
+  fabrication_month: number;
+  fabrication_year: number;
+  caducidad_month: number;
+  caducidad_year: number;
+  caducidad_years: number;
+  inspection_freq: "ANNUAL" | "SEMESTRAL";
+  status: "APPROVED" | "RESERVED" | "TO_DISCARD" | "DISCARDED";
+  created_at: string;
+  updated_at: string;
+}
+
+interface EppLog {
+  id: number;
+  type: string;
+  details: any;
+  created_at: string;
+}
+
+interface Props {
+  id: string;
+}
+
+export function EppDetailView({ id }: Props) {
+  const router = useRouter();
+  const [epp, setEpp] = useState<Epp | null>(null);
+  const [logs, setLogs] = useState<EppLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEpp = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/epps/${id}`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Error al obtener el EPP");
+      }
+
+      const data = await res.json();
+      setEpp(data.epp);
+      setLogs(data.logs || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message ?? "Error inesperado");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEpp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <Spinner label="Cargando EPP..." />
+      </div>
+    );
+  }
+
+  if (error || !epp) {
+    return (
+      <div className="p-6 flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold">Detalle de EPP</h1>
+          <Button variant="light" onPress={() => router.push("/epp")}>
+            Volver al listado
+          </Button>
+        </div>
+        <p className="text-red-500 text-sm">
+          {error || "No se encontró el EPP."}
+        </p>
+      </div>
+    );
+  }
+
+  const fabricationLabel = `${epp.fabrication_month}/${epp.fabrication_year}`;
+  const caducidadLabel = `${epp.caducidad_month}/${epp.caducidad_year}`;
+  const inspectionLabel =
+    epp.inspection_freq === "ANNUAL" ? "Anual" : "Semestral";
+
+  const statusLabelMap: Record<Epp["status"], string> = {
+    APPROVED: "Aprobado",
+    RESERVED: "Uso bajo reserva",
+    TO_DISCARD: "A descartar",
+    DISCARDED: "Descartado",
+  };
+
+  return (
+    <div className="p-6 flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">
+          EPP #{epp.id} – {epp.code}
+        </h1>
+        <Button variant="light" onPress={() => router.push("/epp")}>
+          Volver al listado
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex justify-between items-center">
+            <div>
+              <p className="text-sm text-default-400">Estado actual</p>
+              <p className="text-lg font-semibold">
+                {statusLabelMap[epp.status]}
+              </p>
+            </div>
+            <div className="text-right text-sm text-default-400">
+              <p>Creado: {new Date(epp.created_at).toLocaleString()}</p>
+              <p>Actualizado: {new Date(epp.updated_at).toLocaleString()}</p>
+            </div>
+          </CardHeader>
+          <Divider />
+          <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Código / Nº de serie</span>
+              <span>{epp.code}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Institución</span>
+              <span>{epp.institution}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Sucursal</span>
+              <span>{epp.branch}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Servicio</span>
+              <span>{epp.service}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Fabricación</span>
+              <span>{fabricationLabel}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Caducidad</span>
+              <span>
+                {caducidadLabel} ({epp.caducidad_years} años)
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">Frecuencia de inspección</span>
+              <span>{inspectionLabel}</span>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <p className="font-semibold text-sm">Actividad reciente</p>
+          </CardHeader>
+          <Divider />
+          <CardBody className="text-xs flex flex-col gap-2 max-h-[260px] overflow-auto">
+            {logs.length === 0 && (
+              <span className="text-default-400">
+                No hay actividad registrada todavía.
+              </span>
+            )}
+            {logs.map((log) => (
+              <div key={log.id} className="flex flex-col gap-0.5">
+                <span className="font-semibold">
+                  {log.type} – {new Date(log.created_at).toLocaleString()}
+                </span>
+                {log.details && (
+                  <span className="text-default-500">
+                    {typeof log.details === "string"
+                      ? log.details
+                      : JSON.stringify(log.details)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      </div>
+    </div>
+  );
+}

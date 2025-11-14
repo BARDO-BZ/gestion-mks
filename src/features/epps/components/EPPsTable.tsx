@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableColumn,
   TableHeader,
+  TableColumn,
+  TableBody,
   TableRow,
+  TableCell,
 } from "@heroui/react";
 
 export interface Epp {
@@ -38,10 +39,17 @@ export function EppsTable({ data }: EppsTableProps) {
         <TableColumn>FABRICACIÓN</TableColumn>
         <TableColumn>CADUCIDAD</TableColumn>
       </TableHeader>
+
+      {/* IMPORTANTE: solo TableRow/TableCell dentro del TableBody */}
       <TableBody emptyContent="No hay EPP cargados">
         {data.map((epp) => (
           <TableRow key={epp.id}>
-            <TableCell>{epp.code}</TableCell>
+            <TableCell>
+              {/* Link SOLO dentro de la celda, no envolviendo la fila */}
+              <Link href={`/epp/${epp.id}`} className="underline text-primary">
+                {epp.code}
+              </Link>
+            </TableCell>
             <TableCell>{epp.institution}</TableCell>
             <TableCell>{epp.branch}</TableCell>
             <TableCell>{epp.service}</TableCell>
