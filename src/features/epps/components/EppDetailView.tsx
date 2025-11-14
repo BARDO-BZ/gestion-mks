@@ -15,9 +15,10 @@ import {
   ModalHeader,
   useDisclosure,
 } from "@heroui/react";
-import { EppLogs } from "./EppLogs";
+import { EppTasksList } from "./EppTasksList";
 import { EppInspectionsList } from "./EppInspectionsList";
 import { EppInspectionForm } from "./EppInspectionForm";
+import { EppLogs } from "./EppLogs";
 
 interface Epp {
   id: number;
@@ -56,6 +57,12 @@ export function EppDetailView({ id }: Props) {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [inspectionsKey, setInspectionsKey] = useState(0);
+
+  const [tasksKey, setTasksKey] = useState(0);
+  const handleTaskUpdated = () => {
+    setTasksKey((prev) => prev + 1);
+    fetchEpp(); // para refrescar estado y actividad reciente
+  };
 
   const handleInspectionCreated = () => {
     // refresca inspecciones
@@ -221,6 +228,7 @@ export function EppDetailView({ id }: Props) {
           <h2 className="text-xl font-semibold">Actividad</h2>
           <EppLogs id={id} />
         </div>
+        {/* Inspecciones */}
         <div className="flex flex-col gap-3 mt-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Inspecciones</h2>
@@ -229,6 +237,16 @@ export function EppDetailView({ id }: Props) {
             </Button>
           </div>
           <EppInspectionsList eppId={id} refreshKey={inspectionsKey} />
+        </div>
+
+        {/* Tareas */}
+        <div className="flex flex-col gap-3 mt-4">
+          <h2 className="text-xl font-semibold">Tareas</h2>
+          <EppTasksList
+            eppId={id}
+            refreshKey={tasksKey}
+            onTaskUpdated={handleTaskUpdated}
+          />
         </div>
 
         <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -241,7 +259,11 @@ export function EppDetailView({ id }: Props) {
                 <ModalBody>
                   <EppInspectionForm
                     eppId={id}
-                    onCreated={handleInspectionCreated}
+                    onCreated={() => {
+                      setInspectionsKey((prev) => prev + 1);
+                      fetchEpp();
+                      setTasksKey((prev) => prev + 1); // por si se creó tarea
+                    }}
                     onClose={close}
                   />
                 </ModalBody>
