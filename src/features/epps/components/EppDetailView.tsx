@@ -259,11 +259,7 @@ export function EppDetailView({ id }: Props) {
                 <ModalBody>
                   <EppInspectionForm
                     eppId={id}
-                    onCreated={() => {
-                      setInspectionsKey((prev) => prev + 1);
-                      fetchEpp();
-                      setTasksKey((prev) => prev + 1); // por si se creó tarea
-                    }}
+                    onCreated={handleInspectionCreated}
                     onClose={close}
                   />
                 </ModalBody>
