@@ -1,1 +1,0 @@
-export { EPPsTable } from "./EPPsTable";

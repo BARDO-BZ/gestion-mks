@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { EPPsTable } from "@/features/epp/components";
+import { EppsView } from "@/features/epps/components";
 
 export default function EPP() {
   const { user, logout, loading } = useAuth();
@@ -25,7 +25,7 @@ export default function EPP() {
 
   return (
     <div className="h-100%">
-      <EPPsTable />
+      <EppsView />
     </div>
   );
 }
