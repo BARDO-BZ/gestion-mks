@@ -9,6 +9,6 @@ export async function addEppLog(
   await connection.execute(
     `INSERT INTO epp_logs (epp_id, user_id, type, details)
      VALUES (?, ?, ?, ?)`,
-    [eppId, userId, type, JSON.stringify(details)]
+    [eppId, userId, type, details ? JSON.stringify(details) : null]
   );
 }

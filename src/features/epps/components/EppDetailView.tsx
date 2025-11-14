@@ -9,8 +9,15 @@ import {
   CardHeader,
   Divider,
   Spinner,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  useDisclosure,
 } from "@heroui/react";
 import { EppLogs } from "./EppLogs";
+import { EppInspectionsList } from "./EppInspectionsList";
+import { EppInspectionForm } from "./EppInspectionForm";
 
 interface Epp {
   id: number;
@@ -46,6 +53,16 @@ export function EppDetailView({ id }: Props) {
   const [logs, setLogs] = useState<EppLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [inspectionsKey, setInspectionsKey] = useState(0);
+
+  const handleInspectionCreated = () => {
+    // refresca inspecciones
+    setInspectionsKey((prev) => prev + 1);
+    // refresca EPP (estado) y logs
+    fetchEpp();
+  };
 
   const fetchEpp = async () => {
     setLoading(true);
@@ -204,6 +221,34 @@ export function EppDetailView({ id }: Props) {
           <h2 className="text-xl font-semibold">Actividad</h2>
           <EppLogs id={id} />
         </div>
+        <div className="flex flex-col gap-3 mt-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Inspecciones</h2>
+            <Button color="primary" onPress={onOpen}>
+              Nueva inspección
+            </Button>
+          </div>
+          <EppInspectionsList eppId={id} refreshKey={inspectionsKey} />
+        </div>
+
+        <Modal isOpen={isOpen} onClose={onClose} size="lg">
+          <ModalContent>
+            {(close) => (
+              <>
+                <ModalHeader className="flex flex-col gap-1">
+                  Nueva inspección
+                </ModalHeader>
+                <ModalBody>
+                  <EppInspectionForm
+                    eppId={id}
+                    onCreated={handleInspectionCreated}
+                    onClose={close}
+                  />
+                </ModalBody>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
       </div>
     </div>
   );
