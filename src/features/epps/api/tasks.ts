@@ -65,7 +65,6 @@ export async function closeTaskHandler(req: NextRequest, taskId: string) {
 
     const idNum = Number(taskId);
 
-    // Traer la tarea
     const [rows]: any = await connection.execute(
       `SELECT * FROM epp_tasks WHERE id = ?`,
       [idNum]
@@ -87,7 +86,6 @@ export async function closeTaskHandler(req: NextRequest, taskId: string) {
       );
     }
 
-    // Cerrar tarea
     await connection.execute(
       `UPDATE epp_tasks
        SET status = 'CLOSED',
@@ -96,7 +94,6 @@ export async function closeTaskHandler(req: NextRequest, taskId: string) {
       [idNum]
     );
 
-    // Log
     await addEppLog(task.epp_id, user.id, "TASK_CLOSED", {
       taskId: idNum,
       description: task.description,

@@ -56,7 +56,7 @@ export function EppTasksList({
     setClosingId(taskId);
     setError(null);
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/epps/${eppId}/tasks/${taskId}`, {
         method: "PATCH",
         credentials: "include",
       });
@@ -84,7 +84,7 @@ export function EppTasksList({
     );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 max-h-[390px]">
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {tasks.map((task) => {

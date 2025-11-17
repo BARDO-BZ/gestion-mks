@@ -32,7 +32,7 @@ export function EppLogs({ id }: { id: string }) {
 
   return (
     <Card>
-      <CardBody className="flex flex-col gap-3">
+      <CardBody className="flex flex-col gap-3 max-h-[400px]">
         {logs.map((log) => (
           <div key={log.id} className="border-b pb-2">
             <p className="font-semibold">{log.type}</p>

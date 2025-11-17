@@ -55,7 +55,7 @@ export function EppInspectionsList({
     );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 max-h-[390px]">
       {inspections.map((ins) => (
         <Card key={ins.id}>
           <CardBody className="flex flex-col gap-1 text-sm">
