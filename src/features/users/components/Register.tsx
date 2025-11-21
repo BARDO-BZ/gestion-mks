@@ -131,7 +131,7 @@ export function Register() {
           </p>
 
           <div className="space-y-3">
-            <Button as="a" href="/login" color="primary" className="w-full">
+            <Button as="a" href="/" color="primary" className="w-full">
               Ir al inicio de sesión
             </Button>
 
