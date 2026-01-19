@@ -6,7 +6,7 @@ import {
   InspectionFreq,
 } from "../utils/calculateEPPStatus";
 import { addEppLog } from "../utils/addEppLog";
-import { getAuthUser } from "./getAuthUser";
+import { getAuthUser } from "@/lib/auth";
 
 const ALLOWED_STATUSES: EppDbStatus[] = [
   "APPROVED",
@@ -35,13 +35,13 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
       `SELECT *
        FROM epps
        WHERE id = ?`,
-      [eppId]
+      [eppId],
     );
 
     if (!eppRows || eppRows.length === 0) {
       return NextResponse.json(
         { message: "EPP no encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -58,7 +58,7 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
          WHERE epp_id = ?
          ORDER BY performed_at DESC
          LIMIT 1`,
-        [eppId]
+        [eppId],
       );
       const lastInspectionAt =
         inspRows.length > 0 ? inspRows[0].performed_at : null;
@@ -69,7 +69,7 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
          FROM epp_tasks
          WHERE epp_id = ?
            AND status = 'OPEN'`,
-        [eppId]
+        [eppId],
       );
       const openTasksCount = taskRows[0]?.open_count ?? 0;
 
@@ -91,7 +91,7 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
       if (!body.status || !ALLOWED_STATUSES.includes(body.status)) {
         return NextResponse.json(
           { message: "Estado inválido" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       newStatus = body.status;
@@ -100,7 +100,7 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
     if (newStatus === currentStatus) {
       return NextResponse.json(
         { message: "El estado ya está actualizado", status: currentStatus },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -108,7 +108,7 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
       `UPDATE epps
        SET status = ?
        WHERE id = ?`,
-      [newStatus, eppId]
+      [newStatus, eppId],
     );
 
     await addEppLog(Number(eppId), user.id, "STATUS_CHANGE", {
@@ -119,13 +119,13 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
 
     return NextResponse.json(
       { message: "Estado actualizado", status: newStatus },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error updateEppStatusHandler:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

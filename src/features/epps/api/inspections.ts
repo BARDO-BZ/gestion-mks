@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
-import jwt from "jsonwebtoken";
-import { IJWTPayload } from "@/features/users/interfaces";
 import { addEppLog } from "@/features/epps/utils/addEppLog";
+import { getAuthUser } from "@/lib/auth";
 
 type StatusFlag = "OK" | "DEFECTUOSO";
 
@@ -13,27 +12,6 @@ interface CreateInspectionBody {
   externa_comment?: string;
   create_task?: boolean;
   task_description?: string;
-}
-
-async function getAuthUser(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-  if (!token) return null;
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as IJWTPayload;
-
-    const [rows]: any = await connection.execute(
-      `SELECT id, email, name, last_name, role, status
-       FROM users
-       WHERE id = ? AND status = "active"`,
-      [decoded.userId]
-    );
-
-    if (!rows || rows.length === 0) return null;
-    return rows[0];
-  } catch {
-    return null;
-  }
 }
 
 export async function listInspectionsHandler(req: NextRequest, eppId: string) {
@@ -49,7 +27,7 @@ export async function listInspectionsHandler(req: NextRequest, eppId: string) {
        LEFT JOIN users u ON i.performed_by = u.id
        WHERE i.epp_id = ?
        ORDER BY i.performed_at DESC`,
-      [Number(eppId)]
+      [Number(eppId)],
     );
 
     return NextResponse.json({ data: rows });
@@ -57,7 +35,7 @@ export async function listInspectionsHandler(req: NextRequest, eppId: string) {
     console.error("Error listInspectionsHandler:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,7 +56,7 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
     ) {
       return NextResponse.json(
         { message: "Estados de inspección inválidos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -95,7 +73,7 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
         body.blindaje_comment || null,
         body.externa_status,
         body.externa_comment || null,
-      ]
+      ],
     );
 
     const inspectionId = Number(result.insertId);
@@ -111,7 +89,7 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
         `INSERT INTO epp_tasks
          (epp_id, inspection_id, description, status, created_by)
          VALUES (?, ?, ?, 'OPEN', ?)`,
-        [Number(eppId), inspectionId, body.task_description, user.id]
+        [Number(eppId), inspectionId, body.task_description, user.id],
       );
       taskId = Number(taskResult.insertId);
     }
@@ -125,7 +103,7 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
         `UPDATE epps
          SET status = 'RESERVED'
          WHERE id = ?`,
-        [Number(eppId)]
+        [Number(eppId)],
       );
 
       await addEppLog(Number(eppId), user.id, "STATUS_CHANGE", {
@@ -148,13 +126,13 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
         inspectionId,
         taskId,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error createInspectionHandler:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

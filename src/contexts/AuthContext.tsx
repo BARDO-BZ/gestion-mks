@@ -16,7 +16,7 @@ interface AuthContextType {
   login: (
     email: string,
     password: string,
-    rememberMe?: boolean
+    rememberMe?: boolean,
   ) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: IRegisterData) => Promise<void>;
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (
     email: string,
     password: string,
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
   ) => {
     try {
       const response = await fetch("/api/auth/login", {

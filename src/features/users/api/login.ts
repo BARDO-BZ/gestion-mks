@@ -10,20 +10,20 @@ export async function loginHandler(body: ILoginBody) {
   if (!email || !password) {
     return NextResponse.json(
       { message: "Email y contraseña son requeridos" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
     const [rows] = await connection.execute<IUser[]>(
       'SELECT * FROM users WHERE email = ? AND status = "active"',
-      [email]
+      [email],
     );
 
     if (rows.length === 0) {
       return NextResponse.json(
         { message: "Credenciales inválidas" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -33,20 +33,37 @@ export async function loginHandler(body: ILoginBody) {
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: "Credenciales inválidas" },
-        { status: 401 }
+        { status: 401 },
+      );
+    }
+
+    // 🔒 Regla: un client sin institution_id NO puede iniciar sesión
+    if (user.role === "client" && user.institution_id == null) {
+      return NextResponse.json(
+        {
+          message:
+            "Tu cuenta todavía no tiene institución asignada. Contactá a un administrador.",
+        },
+        { status: 403 },
       );
     }
 
     await connection.execute(
       "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
-      [user.id]
+      [user.id],
     );
 
     const tokenExpiry = rememberMe ? "30d" : "1d";
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        institution_id: user.institution_id,
+        last_login: user.last_login,
+      },
       process.env.JWT_SECRET!,
-      { expiresIn: tokenExpiry }
+      { expiresIn: tokenExpiry },
     );
 
     const cookieMaxAge = rememberMe
@@ -76,7 +93,7 @@ export async function loginHandler(body: ILoginBody) {
     console.error("Error en login:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

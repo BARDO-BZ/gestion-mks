@@ -9,6 +9,7 @@ export interface IUser extends RowDataPacket {
   name: string;
   last_name: string;
   last_login: Date | null;
+  institution_id: number | null;
 }
 
 export interface IRegisterData {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { ICreateEppBody } from "../interfaces/epp";
-import { getAuthUser } from "./getAuthUser";
+import { getAuthUser } from "@/lib/auth";
 
 export async function createEppHandler(req: NextRequest) {
   try {
@@ -33,7 +33,7 @@ export async function createEppHandler(req: NextRequest) {
     ) {
       return NextResponse.json(
         { message: "Faltan datos obligatorios" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function createEppHandler(req: NextRequest) {
         inspFreq,
         "APPROVED",
         user.id,
-      ]
+      ],
     );
 
     const insertedId = result.insertId as number;
@@ -74,13 +74,13 @@ export async function createEppHandler(req: NextRequest) {
     await connection.execute(
       `INSERT INTO epp_logs (epp_id, user_id, type, details)
        VALUES (?, ?, ?, JSON_OBJECT("action","CREATE","code",?))`,
-      [insertedId, user.id, "CREATE", code]
+      [insertedId, user.id, "CREATE", code],
     );
 
     // Traer el registro recién creado
     const [rows]: any = await connection.execute(
       `SELECT * FROM epps WHERE id = ?`,
-      [insertedId]
+      [insertedId],
     );
 
     const epp = rows[0];
@@ -90,7 +90,7 @@ export async function createEppHandler(req: NextRequest) {
     console.error("Error en createEppHandler:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

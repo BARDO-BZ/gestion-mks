@@ -5,7 +5,7 @@ import {
   EppDbStatus,
   InspectionFreq,
 } from "../utils/calculateEPPStatus";
-import { getAuthUser } from "./getAuthUser";
+import { getAuthUser } from "@/lib/auth";
 
 export async function getEppHandler(req: NextRequest, eppId: string) {
   try {
@@ -19,13 +19,13 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
       `SELECT *
        FROM epps
        WHERE id = ?`,
-      [eppId]
+      [eppId],
     );
 
     if (!eppRows || eppRows.length === 0) {
       return NextResponse.json(
         { message: "EPP no encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
        WHERE epp_id = ?
        ORDER BY performed_at DESC
        LIMIT 1`,
-      [eppId]
+      [eppId],
     );
     const lastInspectionAt =
       inspRows.length > 0 ? inspRows[0].performed_at : null;
@@ -49,7 +49,7 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
        FROM epp_tasks
        WHERE epp_id = ?
          AND status = 'OPEN'`,
-      [eppId]
+      [eppId],
     );
     const openTasksCount = taskRows[0]?.open_count ?? 0;
 
@@ -77,7 +77,7 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
        WHERE epp_id = ?
        ORDER BY created_at DESC
        LIMIT 50`,
-      [eppId]
+      [eppId],
     );
 
     return NextResponse.json(
@@ -93,13 +93,13 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
         },
         logs: logRows,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error en getEppHandler:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

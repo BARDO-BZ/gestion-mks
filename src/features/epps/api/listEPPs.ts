@@ -1,29 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
-import jwt from "jsonwebtoken";
-import { IJWTPayload } from "@/features/users/interfaces";
-
-async function getAuthUser(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-  if (!token) return null;
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as IJWTPayload;
-
-    const [rows]: any = await connection.execute(
-      `SELECT id, email, name, last_name, role, status
-       FROM users
-       WHERE id = ? AND status = "active"`,
-      [decoded.userId]
-    );
-
-    if (!rows || rows.length === 0) return null;
-
-    return rows[0];
-  } catch {
-    return null;
-  }
-}
+import { getAuthUser } from "@/lib/auth";
 
 export async function listEppsHandler(req: NextRequest) {
   try {
@@ -64,7 +41,7 @@ export async function listEppsHandler(req: NextRequest) {
     }
     if (search) {
       whereParts.push(
-        "(code LIKE ? OR institution LIKE ? OR branch LIKE ? OR service LIKE ?)"
+        "(code LIKE ? OR institution LIKE ? OR branch LIKE ? OR service LIKE ?)",
       );
       values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
@@ -75,7 +52,7 @@ export async function listEppsHandler(req: NextRequest) {
     // total
     const [countRows]: any = await connection.execute(
       `SELECT COUNT(*) as total FROM epps ${whereSql}`,
-      values
+      values,
     );
     const total = countRows[0]?.total ?? 0;
 
@@ -109,7 +86,7 @@ export async function listEppsHandler(req: NextRequest) {
     console.error("Error en listEppsHandler:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
