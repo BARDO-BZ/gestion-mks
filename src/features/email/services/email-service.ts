@@ -1,12 +1,14 @@
 import { sendEmail } from "@/lib/email";
-import { generateWelcomeEmail, generatePasswordResetEmail } from "../templates";
+import {
+  generateWelcomeEmail,
+  generatePasswordResetEmail,
+  generateAdminNewUserPendingEmail,
+  generatePendingApprovalEmail,
+  generateAccountApprovedEmail,
+} from "../templates";
 
 export class EmailService {
-  static async sendWelcomeEmail(userData: {
-    name: string;
-    email: string;
-    activationToken?: string;
-  }) {
+  static async sendWelcomeEmail(userData: { name: string; email: string }) {
     try {
       const { html, subject } = generateWelcomeEmail(userData);
 
@@ -58,5 +60,42 @@ export class EmailService {
     activationToken: string;
   }) {
     return this.sendWelcomeEmail(userData);
+  }
+
+  static async sendAdminNewUserPendingEmail(args: {
+    to: string;
+    newUserEmail: string;
+    newUserName: string;
+  }) {
+    const { subject, html } = generateAdminNewUserPendingEmail({
+      newUserEmail: args.newUserEmail,
+      newUserName: args.newUserName,
+    });
+
+    return sendEmail({
+      to: args.to,
+      subject,
+      html,
+    });
+  }
+
+  static async sendPendingApprovalEmail(userData: {
+    name: string;
+    email: string;
+  }) {
+    const { html, subject } = generatePendingApprovalEmail(userData);
+
+    return sendEmail({
+      to: userData.email,
+      subject,
+      html,
+    });
+  }
+  static async sendAccountApprovedEmail(userData: {
+    name: string;
+    email: string;
+  }) {
+    const { html, subject } = generateAccountApprovedEmail(userData);
+    return sendEmail({ to: userData.email, subject, html });
   }
 }

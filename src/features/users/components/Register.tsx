@@ -121,13 +121,8 @@ export function Register() {
           </h2>
 
           <p className="text-green-700 mb-4">
-            Hemos enviado un correo de verificación a{" "}
-            <span className="font-medium">{userInfo.email}</span>
-          </p>
-
-          <p className="text-green-600 text-sm mb-6">
-            Por favor, revisa tu bandeja de entrada y haz clic en el enlace de
-            verificación para activar tu cuenta.
+            Tu cuenta fue creada y está pendiente de aprobación. Te avisaremos
+            por email.
           </p>
 
           <div className="space-y-3">

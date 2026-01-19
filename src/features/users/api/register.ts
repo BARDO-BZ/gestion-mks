@@ -5,12 +5,13 @@ import crypto from "crypto";
 import connection from "@/lib/db";
 import { IExistingUser } from "@/features/users/interfaces";
 import { EmailService } from "@/features/email/services/email-service";
+import { getActiveAdminRecipients } from "@/features/users/api/admin/getAdminEmails";
 
 export async function registerHandler(req: NextRequest) {
   if (req.method !== "POST") {
     return NextResponse.json(
       { message: "Método no permitido" },
-      { status: 405 }
+      { status: 405 },
     );
   }
 
@@ -20,7 +21,7 @@ export async function registerHandler(req: NextRequest) {
   if (!email || !password || !name || !lastName) {
     return NextResponse.json(
       { message: "Todos los campos son requeridos" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -29,7 +30,7 @@ export async function registerHandler(req: NextRequest) {
   if (!emailRegex.test(email)) {
     return NextResponse.json(
       { message: "Formato de email inválido" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -37,7 +38,7 @@ export async function registerHandler(req: NextRequest) {
   if (password.length < 8) {
     return NextResponse.json(
       { message: "La contraseña debe tener al menos 8 caracteres" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -45,13 +46,13 @@ export async function registerHandler(req: NextRequest) {
     // Verificar si el usuario ya existe
     const [existingUsers] = await connection.execute<IExistingUser[]>(
       "SELECT id, email FROM users WHERE email = ?",
-      [email]
+      [email],
     );
 
     if (existingUsers.length > 0) {
       return NextResponse.json(
         { message: "El usuario ya existe" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -90,30 +91,11 @@ export async function registerHandler(req: NextRequest) {
         initialStatus,
         requiresActivation ? activationToken : null,
         requiresActivation ? activationExpires : null,
-      ]
+      ],
     );
 
     const insertResult = result as any;
     const userId = insertResult.insertId;
-
-    // Enviar email de bienvenida
-    try {
-      if (requiresActivation) {
-        await EmailService.sendAccountActivationEmail({
-          name: `${name} ${lastName}`,
-          email,
-          activationToken,
-        });
-      } else {
-        await EmailService.sendWelcomeEmail({
-          name: `${name} ${lastName}`,
-          email,
-        });
-      }
-    } catch (emailError) {
-      console.error("Error enviando email de bienvenida:", emailError);
-      // No fallar el registro si el email falla
-    }
 
     // Solo crear JWT y cookie si la cuenta no requiere activación
     let token = null;
@@ -143,7 +125,7 @@ export async function registerHandler(req: NextRequest) {
           role,
         },
         process.env.JWT_SECRET!,
-        { expiresIn: "1d" }
+        { expiresIn: "1d" },
       );
 
       // Setear cookie en NextResponse
@@ -156,12 +138,36 @@ export async function registerHandler(req: NextRequest) {
       });
     }
 
+    // Enviar emails (no frenar el registro si falla)
+    try {
+      // 1) Mail al usuario: "solicitud recibida"
+      await EmailService.sendAccountApprovedEmail({
+        name: `${name} ${lastName}`,
+        email,
+      });
+
+      // 2) Mail a admins: "nuevo pendiente"
+      const admins = await getActiveAdminRecipients();
+
+      await Promise.all(
+        admins.map((a: any) =>
+          EmailService.sendAdminNewUserPendingEmail({
+            to: a.email,
+            newUserEmail: email,
+            newUserName: `${name} ${lastName}`,
+          }),
+        ),
+      );
+    } catch (emailError) {
+      console.error("Error enviando emails:", emailError);
+    }
+
     return response;
   } catch (error) {
     console.error("Error en registro:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -54,10 +54,14 @@ export async function middleware(request: NextRequest) {
 
   // 3) Si ya está autenticado y visita rutas de auth (ej. "/") → al dashboard
   if (valid && isAuth) {
+    const redirectParam = request.nextUrl.searchParams.get("redirect");
+
+    if (redirectParam && redirectParam.startsWith("/")) {
+      return NextResponse.redirect(new URL(redirectParam, request.url));
+    }
+
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-
-  return NextResponse.next();
 }
 
 export const config = {
