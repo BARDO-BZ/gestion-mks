@@ -5,24 +5,22 @@ import {
   EppDbStatus,
   InspectionFreq,
 } from "../utils/calculateEPPStatus";
-import { getAuthUser } from "@/lib/auth";
+import { assertEppAccess } from "@/features/epps/utils/assertEppAccess";
 
 export async function getEppHandler(req: NextRequest, eppId: string) {
   try {
-    const user = await getAuthUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-    }
+    const idNum = Number(eppId);
+    const access = await assertEppAccess(req, idNum);
+    if (!access.ok) return access.res;
 
-    // Traer EPP
+    const user = access.user;
+
     const [eppRows]: any = await connection.execute(
-      `SELECT *
-       FROM epps
-       WHERE id = ?`,
-      [eppId],
+      `SELECT * FROM epps WHERE id = ?`,
+      [idNum],
     );
 
-    if (!eppRows || eppRows.length === 0) {
+    if (!eppRows?.length) {
       return NextResponse.json(
         { message: "EPP no encontrado" },
         { status: 404 },
@@ -31,29 +29,29 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
 
     const epp = eppRows[0];
 
-    // Última inspección
+    // ... (resto de tu lógica igual)
     const [inspRows]: any = await connection.execute(
       `SELECT performed_at
        FROM inspections
        WHERE epp_id = ?
        ORDER BY performed_at DESC
        LIMIT 1`,
-      [eppId],
+      [idNum],
     );
+
     const lastInspectionAt =
       inspRows.length > 0 ? inspRows[0].performed_at : null;
 
-    // Tareas abiertas
     const [taskRows]: any = await connection.execute(
       `SELECT COUNT(*) AS open_count
        FROM epp_tasks
        WHERE epp_id = ?
          AND status = 'OPEN'`,
-      [eppId],
+      [idNum],
     );
+
     const openTasksCount = taskRows[0]?.open_count ?? 0;
 
-    // Calcular estado sugerido
     const { computedStatus, inspectionOverdue, nextInspectionDate } =
       calculateEppStatus({
         status: epp.status as EppDbStatus,
@@ -70,14 +68,13 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
 
     const needsStatusUpdate = computedStatus !== epp.status;
 
-    // Logs (como ya lo tenías)
     const [logRows]: any = await connection.execute(
       `SELECT id, type, details, created_at
        FROM epp_logs
        WHERE epp_id = ?
        ORDER BY created_at DESC
        LIMIT 50`,
-      [eppId],
+      [idNum],
     );
 
     return NextResponse.json(

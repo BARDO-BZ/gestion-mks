@@ -6,7 +6,7 @@ import {
   InspectionFreq,
 } from "../utils/calculateEPPStatus";
 import { addEppLog } from "../utils/addEppLog";
-import { getAuthUser } from "@/lib/auth";
+import { assertEppAccess } from "@/features/epps/utils/assertEppAccess";
 
 const ALLOWED_STATUSES: EppDbStatus[] = [
   "APPROVED",
@@ -22,7 +22,11 @@ interface Body {
 
 export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
   try {
-    const user = await getAuthUser(req);
+    const idNum = Number(eppId);
+    const access = await assertEppAccess(req, idNum);
+    if (!access.ok) return access.res;
+    const user = access.user;
+
     if (!user) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }

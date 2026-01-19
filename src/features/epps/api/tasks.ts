@@ -10,6 +10,41 @@ export async function listTasksHandler(req: NextRequest, eppId: string) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
+    const eppIdNum = Number(eppId);
+
+    // ✅ Gate por institución (seguridad)
+    const [eppRows]: any = await connection.execute(
+      `SELECT id, institution_id FROM epps WHERE id = ? LIMIT 1`,
+      [eppIdNum],
+    );
+
+    if (!eppRows?.length) {
+      return NextResponse.json(
+        { message: "EPP no encontrado" },
+        { status: 404 },
+      );
+    }
+
+    const epp = eppRows[0] as { institution_id: number | null };
+
+    if (user.role !== "admin") {
+      if (!user.institution_id) {
+        return NextResponse.json(
+          { message: "Usuario sin institución" },
+          { status: 403 },
+        );
+      }
+
+      if (epp.institution_id !== user.institution_id) {
+        // 404 para no filtrar info
+        return NextResponse.json(
+          { message: "EPP no encontrado" },
+          { status: 404 },
+        );
+      }
+    }
+
+    // 👇 tu query original
     const [rows]: any = await connection.execute(
       `SELECT 
           t.*,
@@ -21,7 +56,7 @@ export async function listTasksHandler(req: NextRequest, eppId: string) {
        ORDER BY 
          CASE WHEN t.status = 'OPEN' THEN 0 ELSE 1 END,
          t.created_at DESC`,
-      [Number(eppId)],
+      [eppIdNum],
     );
 
     return NextResponse.json({ data: rows });

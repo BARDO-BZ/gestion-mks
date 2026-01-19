@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { addEppLog } from "@/features/epps/utils/addEppLog";
-import { getAuthUser } from "@/lib/auth";
+import { assertEppAccess } from "@/features/epps/utils/assertEppAccess";
 
 type StatusFlag = "OK" | "DEFECTUOSO";
 
@@ -16,10 +16,9 @@ interface CreateInspectionBody {
 
 export async function listInspectionsHandler(req: NextRequest, eppId: string) {
   try {
-    const user = await getAuthUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-    }
+    const idNum = Number(eppId);
+    const access = await assertEppAccess(req, idNum);
+    if (!access.ok) return access.res;
 
     const [rows]: any = await connection.execute(
       `SELECT i.*, u.name AS user_name, u.last_name AS user_last_name
@@ -27,7 +26,7 @@ export async function listInspectionsHandler(req: NextRequest, eppId: string) {
        LEFT JOIN users u ON i.performed_by = u.id
        WHERE i.epp_id = ?
        ORDER BY i.performed_at DESC`,
-      [Number(eppId)],
+      [idNum],
     );
 
     return NextResponse.json({ data: rows });
@@ -42,7 +41,11 @@ export async function listInspectionsHandler(req: NextRequest, eppId: string) {
 
 export async function createInspectionHandler(req: NextRequest, eppId: string) {
   try {
-    const user = await getAuthUser(req);
+    const idNum = Number(eppId);
+    const access = await assertEppAccess(req, idNum);
+    if (!access.ok) return access.res;
+    const user = access.user;
+
     if (!user) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }

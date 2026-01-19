@@ -23,6 +23,19 @@ export async function listEppsHandler(req: NextRequest) {
     const whereParts: string[] = [];
     const values: any[] = [];
 
+    // ✅ Gate por institución
+    if (user.role !== "admin") {
+      if (!user.institution_id) {
+        return NextResponse.json(
+          { message: "Usuario sin institución" },
+          { status: 403 },
+        );
+      }
+      whereParts.push("institution_id = ?");
+      values.push(user.institution_id);
+    }
+
+    // Filtros existentes
     if (institution) {
       whereParts.push("institution LIKE ?");
       values.push(`%${institution}%`);
@@ -49,20 +62,18 @@ export async function listEppsHandler(req: NextRequest) {
     const whereSql =
       whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
 
-    // total
     const [countRows]: any = await connection.execute(
       `SELECT COUNT(*) as total FROM epps ${whereSql}`,
       values,
     );
     const total = countRows[0]?.total ?? 0;
 
-    // calculamos limit/offset con fallback seguro
     const safePageSize =
       Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 20;
     const safePage = Number.isFinite(page) && page > 0 ? page : 1;
     const offset = (safePage - 1) * safePageSize;
 
-    // 🚨 acá VA INTERPOLADO, no con ?
+    // 🚨 LIMIT/OFFSET interpolado (como ya venías haciendo)
     const sqlData = `
       SELECT *
       FROM epps

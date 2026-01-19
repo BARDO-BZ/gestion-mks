@@ -5,6 +5,8 @@ export interface IEpp {
   id: number;
   code: string;
   institution: string;
+  institution_id: number;
+
   branch: string;
   service: string;
 
@@ -25,6 +27,8 @@ export interface IEpp {
 export interface ICreateEppBody {
   code: string;
   institution: string;
+  institution_id: number;
+
   branch: string;
   service: string;
 

@@ -12,6 +12,23 @@ export async function createEppHandler(req: NextRequest) {
 
     const body = (await req.json()) as ICreateEppBody;
 
+    const institution_id =
+      user.role === "admin" ? Number(body.institution_id) : user.institution_id;
+
+    if (user.role !== "admin" && !institution_id) {
+      return NextResponse.json(
+        { message: "Usuario sin institución" },
+        { status: 403 },
+      );
+    }
+
+    if (user.role === "admin" && !institution_id) {
+      return NextResponse.json(
+        { message: "Falta institution_id" },
+        { status: 400 },
+      );
+    }
+
     const {
       code,
       institution,
@@ -46,15 +63,16 @@ export async function createEppHandler(req: NextRequest) {
     // Insertar en DB
     const [result]: any = await connection.execute(
       `INSERT INTO epps
-        (code, institution, branch, service,
+        (code, institution, institution_id, branch, service,
          fabrication_month, fabrication_year,
          caducidad_month, caducidad_year,
          caducidad_years, inspection_freq,
          status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         code,
         institution,
+        institution_id,
         branch,
         service,
         fabrication_month,
