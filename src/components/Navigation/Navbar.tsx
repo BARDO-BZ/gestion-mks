@@ -33,6 +33,12 @@ const ALL_ITEMS: NavItem[] = [
   { href: "/inspections", label: "Inspecciones", Icon: InspectionIcon },
   { href: "/reports", label: "Reportes", Icon: FileIcon },
   {
+    href: "/admin/users",
+    label: "Usuarios",
+    Icon: SettingsIcon,
+    roles: ["admin"],
+  },
+  {
     href: "/settings",
     label: "Configuración",
     Icon: SettingsIcon,
@@ -67,7 +73,7 @@ export default function Navbar() {
 
   const visibleItems = useMemo(
     () => ALL_ITEMS.filter((it) => !it.roles || it.roles.includes(role)),
-    [role]
+    [role],
   );
 
   const displayName = useMemo(() => {
