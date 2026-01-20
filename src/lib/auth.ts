@@ -29,7 +29,7 @@ export async function getAuthUser(req: NextRequest): Promise<AuthUser | null> {
     const [rows]: any = await connection.execute(
       `SELECT id, email, name, last_name, role, status, institution_id
        FROM users
-       WHERE id = ? AND status = "active"
+       WHERE id = ?
        LIMIT 1`,
       [decoded.userId],
     );
@@ -40,9 +40,9 @@ export async function getAuthUser(req: NextRequest): Promise<AuthUser | null> {
 
     // 🔒 Regla clave:
     // Cliente sin institución => no autorizado
-    if (user.role === "client" && !user.institution_id) {
-      return null;
-    }
+    if (user.status !== "active") return null;
+
+    if (user.role === "client" && !user.institution_id) return null;
 
     // Admin puede tener institution_id = null
     return user;

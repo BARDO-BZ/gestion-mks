@@ -16,7 +16,7 @@ export async function loginHandler(body: ILoginBody) {
 
   try {
     const [rows] = await connection.execute<IUser[]>(
-      'SELECT * FROM users WHERE email = ? AND status = "active"',
+      "SELECT * FROM users WHERE email = ?",
       [email],
     );
 
@@ -34,6 +34,30 @@ export async function loginHandler(body: ILoginBody) {
       return NextResponse.json(
         { message: "Credenciales inválidas" },
         { status: 401 },
+      );
+    }
+
+    if (user.status === "archived") {
+      return NextResponse.json(
+        {
+          message:
+            "Tu cuenta fue desactivada. Contactá a un administrador para reactivarla.",
+        },
+        { status: 403 },
+      );
+    }
+
+    if (user.status === "pending") {
+      return NextResponse.json(
+        { message: "Tu cuenta todavía está pendiente de aprobación." },
+        { status: 403 },
+      );
+    }
+
+    if (user.status !== "active") {
+      return NextResponse.json(
+        { message: "Tu cuenta no está habilitada para iniciar sesión." },
+        { status: 403 },
       );
     }
 
