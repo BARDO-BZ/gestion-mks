@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { requireInstitutionAccess } from "@/lib/authz";
 
 export async function listEppsHandler(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-    }
+    const access = await requireInstitutionAccess(req);
+    if (!access.ok) return access.res;
+
+    const user = access.user;
 
     const { searchParams } = new URL(req.url);
 

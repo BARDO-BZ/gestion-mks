@@ -5,31 +5,41 @@ import {
   EppDbStatus,
   InspectionFreq,
 } from "../utils/calculateEPPStatus";
-import { assertEppAccess } from "@/features/epps/utils/assertEppAccess";
+import { requireInstitutionAccess } from "@/lib/authz";
 
 export async function getEppHandler(req: NextRequest, eppId: string) {
   try {
     const idNum = Number(eppId);
-    const access = await assertEppAccess(req, idNum);
-    if (!access.ok) return access.res;
 
-    const user = access.user;
-
-    const [eppRows]: any = await connection.execute(
-      `SELECT * FROM epps WHERE id = ?`,
+    // 1️⃣ Traer SOLO institution_id para validar acceso
+    const [accessRows]: any = await connection.execute(
+      "SELECT institution_id FROM epps WHERE id = ?",
       [idNum],
     );
 
-    if (!eppRows?.length) {
+    if (!accessRows?.length) {
       return NextResponse.json(
         { message: "EPP no encontrado" },
         { status: 404 },
       );
     }
 
+    const access = await requireInstitutionAccess(
+      req,
+      accessRows[0].institution_id,
+    );
+
+    if (!access.ok) return access.res;
+
+    // 2️⃣ Traer EPP completo (ya validado el acceso)
+    const [eppRows]: any = await connection.execute(
+      "SELECT * FROM epps WHERE id = ?",
+      [idNum],
+    );
+
     const epp = eppRows[0];
 
-    // ... (resto de tu lógica igual)
+    // 3️⃣ Última inspección
     const [inspRows]: any = await connection.execute(
       `SELECT performed_at
        FROM inspections
@@ -42,6 +52,7 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
     const lastInspectionAt =
       inspRows.length > 0 ? inspRows[0].performed_at : null;
 
+    // 4️⃣ Tareas abiertas
     const [taskRows]: any = await connection.execute(
       `SELECT COUNT(*) AS open_count
        FROM epp_tasks
@@ -52,6 +63,7 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
 
     const openTasksCount = taskRows[0]?.open_count ?? 0;
 
+    // 5️⃣ Cálculo de estado
     const { computedStatus, inspectionOverdue, nextInspectionDate } =
       calculateEppStatus({
         status: epp.status as EppDbStatus,
@@ -68,6 +80,7 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
 
     const needsStatusUpdate = computedStatus !== epp.status;
 
+    // 6️⃣ Logs
     const [logRows]: any = await connection.execute(
       `SELECT id, type, details, created_at
        FROM epp_logs

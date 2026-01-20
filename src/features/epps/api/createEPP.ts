@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { ICreateEppBody } from "../interfaces/epp";
-import { getAuthUser } from "@/lib/auth";
+import { requireInstitutionAccess } from "@/lib/authz";
 
 export async function createEppHandler(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-    }
+    const access = await requireInstitutionAccess(req);
+    if (!access.ok) return access.res;
+
+    const user = access.user;
 
     const body = (await req.json()) as ICreateEppBody;
 
