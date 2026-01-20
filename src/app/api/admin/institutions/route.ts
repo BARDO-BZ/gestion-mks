@@ -1,6 +1,11 @@
-import { NextRequest } from "next/server";
-import { listInstitutionsAdminHandler } from "@/features/institutions/api/admin/listInstitutions";
+import { NextRequest, NextResponse } from "next/server";
+import { listInstitutionsHandler } from "@/features/institutions/api/admin/listInstitutions";
+import { createInstitutionHandler } from "@/features/institutions/api/admin/createInstitution";
 
 export async function GET(req: NextRequest) {
-  return listInstitutionsAdminHandler(req);
+  return listInstitutionsHandler(req);
+}
+
+export async function POST(req: NextRequest) {
+  return createInstitutionHandler(req);
 }

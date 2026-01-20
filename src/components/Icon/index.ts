@@ -7,3 +7,5 @@ export { InspectionIcon } from "./InspectionIcon";
 export { FileIcon } from "./FileIcon";
 export { SettingsIcon } from "./SettingsIcon";
 export { HelpIcon } from "./HelpIcon";
+export { InstitutionIcon } from "./InstitutionIcon";
+export { UserIcon } from "./UserIcon";

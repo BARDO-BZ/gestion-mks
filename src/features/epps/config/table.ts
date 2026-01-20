@@ -7,10 +7,10 @@ export const columns = [
     key: "id",
     label: "ID",
   },
-  {
-    key: "institution",
-    label: "Institution",
-  },
+  // {
+  //   key: "institution",
+  //   label: "Institution",
+  // },
   {
     key: "branch",
     label: "Sucursal",
