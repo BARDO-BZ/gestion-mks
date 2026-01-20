@@ -15,19 +15,27 @@ export async function loginHandler(body: ILoginBody) {
   }
 
   try {
-    const [rows] = await connection.execute<IUser[]>(
-      "SELECT * FROM users WHERE email = ?",
+    // Traemos también el status de la institución (si tiene)
+    const [rows] = await connection.execute<any[]>(
+      `SELECT
+         u.*,
+         i.status AS institution_status
+       FROM users u
+       LEFT JOIN institutions i ON i.id = u.institution_id
+       WHERE u.email = ?
+       LIMIT 1`,
       [email],
     );
 
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return NextResponse.json(
         { message: "Credenciales inválidas" },
         { status: 401 },
       );
     }
 
-    const user = rows[0];
+    const user = rows[0] as IUser & { institution_status?: string | null };
+
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
@@ -37,6 +45,7 @@ export async function loginHandler(body: ILoginBody) {
       );
     }
 
+    // 🚫 Usuario archivado
     if (user.status === "archived") {
       return NextResponse.json(
         {
@@ -47,6 +56,7 @@ export async function loginHandler(body: ILoginBody) {
       );
     }
 
+    // ⏳ Usuario pendiente
     if (user.status === "pending") {
       return NextResponse.json(
         { message: "Tu cuenta todavía está pendiente de aprobación." },
@@ -54,6 +64,7 @@ export async function loginHandler(body: ILoginBody) {
       );
     }
 
+    // 🚫 Cualquier otro estado no activo
     if (user.status !== "active") {
       return NextResponse.json(
         { message: "Tu cuenta no está habilitada para iniciar sesión." },
@@ -61,7 +72,7 @@ export async function loginHandler(body: ILoginBody) {
       );
     }
 
-    // 🔒 Regla: un client sin institution_id NO puede iniciar sesión
+    // 🔒 Regla: client sin institution_id NO puede iniciar sesión
     if (user.role === "client" && user.institution_id == null) {
       return NextResponse.json(
         {
@@ -72,19 +83,35 @@ export async function loginHandler(body: ILoginBody) {
       );
     }
 
+    // 🏢 Regla: si la institución está inactiva, el client NO puede entrar
+    if (
+      user.role === "client" &&
+      user.institution_id != null &&
+      user.institution_status === "inactive"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Tu institución está inactiva. Contactá a un administrador para reactivarla.",
+        },
+        { status: 403 },
+      );
+    }
+
+    // Update last_login
     await connection.execute(
       "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
       [user.id],
     );
 
+    // JWT
     const tokenExpiry = rememberMe ? "30d" : "1d";
     const token = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
-        institution_id: user.institution_id,
-        last_login: user.last_login,
+        institution_id: user.institution_id ?? null,
       },
       process.env.JWT_SECRET!,
       { expiresIn: tokenExpiry },
