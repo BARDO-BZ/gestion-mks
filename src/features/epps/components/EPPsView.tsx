@@ -14,11 +14,15 @@ import {
 } from "@heroui/react";
 import { Epp, EppsTable } from "./EPPsTable";
 import { EppForm } from "./EppForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function EppsView() {
   const [data, setData] = useState<Epp[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -58,7 +62,11 @@ export function EppsView() {
         <div className="flex gap-2 items-center w-[500px]">
           <Input
             size="md"
-            placeholder="Buscar por código, institución..."
+            placeholder={
+              isAdmin
+                ? "Buscar por código, institución, servicio..."
+                : "Buscar por código, servicio..."
+            }
             value={search}
             onValueChange={setSearch}
           />
@@ -71,7 +79,7 @@ export function EppsView() {
         </div>
       </div>
 
-      <EppsTable data={data} />
+      <EppsTable data={data} isAdmin={isAdmin} />
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalContent>

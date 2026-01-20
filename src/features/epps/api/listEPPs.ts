@@ -14,6 +14,7 @@ export async function listEppsHandler(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
+    // 👇 este filtro ahora se interpreta como "nombre institución"
     const institution = searchParams.get("institution") || "";
     const branch = searchParams.get("branch") || "";
     const service = searchParams.get("service") || "";
@@ -23,7 +24,7 @@ export async function listEppsHandler(req: NextRequest) {
     const whereParts: string[] = [];
     const values: any[] = [];
 
-    // ✅ Gate por institución
+    // ✅ Gate por institución para CLIENT
     if (user.role !== "admin") {
       if (!user.institution_id) {
         return NextResponse.json(
@@ -31,30 +32,31 @@ export async function listEppsHandler(req: NextRequest) {
           { status: 403 },
         );
       }
-      whereParts.push("institution_id = ?");
+      whereParts.push("e.institution_id = ?");
       values.push(user.institution_id);
     }
 
-    // Filtros existentes
+    // ✅ Filtros
+    // institution -> ahora filtra por nombre de institutions (JOIN)
     if (institution) {
-      whereParts.push("institution LIKE ?");
+      whereParts.push("i.name LIKE ?");
       values.push(`%${institution}%`);
     }
     if (branch) {
-      whereParts.push("branch LIKE ?");
+      whereParts.push("e.branch LIKE ?");
       values.push(`%${branch}%`);
     }
     if (service) {
-      whereParts.push("service LIKE ?");
+      whereParts.push("e.service LIKE ?");
       values.push(`%${service}%`);
     }
     if (status) {
-      whereParts.push("status = ?");
+      whereParts.push("e.status = ?");
       values.push(status);
     }
     if (search) {
       whereParts.push(
-        "(code LIKE ? OR institution LIKE ? OR branch LIKE ? OR service LIKE ?)",
+        "(e.code LIKE ? OR i.name LIKE ? OR e.branch LIKE ? OR e.service LIKE ?)",
       );
       values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
@@ -62,8 +64,14 @@ export async function listEppsHandler(req: NextRequest) {
     const whereSql =
       whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
 
+    // total
     const [countRows]: any = await connection.execute(
-      `SELECT COUNT(*) as total FROM epps ${whereSql}`,
+      `
+      SELECT COUNT(*) as total
+      FROM epps e
+      LEFT JOIN institutions i ON i.id = e.institution_id
+      ${whereSql}
+      `,
       values,
     );
     const total = countRows[0]?.total ?? 0;
@@ -73,12 +81,14 @@ export async function listEppsHandler(req: NextRequest) {
     const safePage = Number.isFinite(page) && page > 0 ? page : 1;
     const offset = (safePage - 1) * safePageSize;
 
-    // 🚨 LIMIT/OFFSET interpolado (como ya venías haciendo)
     const sqlData = `
-      SELECT *
-      FROM epps
+      SELECT
+        e.*,
+        i.name AS institution_name
+      FROM epps e
+      LEFT JOIN institutions i ON i.id = e.institution_id
       ${whereSql}
-      ORDER BY created_at DESC
+      ORDER BY e.created_at DESC
       LIMIT ${safePageSize} OFFSET ${offset}
     `;
 

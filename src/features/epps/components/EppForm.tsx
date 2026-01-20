@@ -42,7 +42,6 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
         credentials: "include",
         body: JSON.stringify({
           code,
-          institution,
           branch,
           service,
           fabrication_month: Number(fabricationMonth),
@@ -76,12 +75,6 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
           isRequired
           value={code}
           onValueChange={setCode}
-        />
-        <Input
-          label="Institución"
-          isRequired
-          value={institution}
-          onValueChange={setInstitution}
         />
         <Input
           label="Sucursal"

@@ -4,7 +4,7 @@ export type InspectionFrequency = "ANNUAL" | "SEMESTRAL";
 export interface IEpp {
   id: number;
   code: string;
-  institution: string;
+  institution_name?: string;
   institution_id: number;
 
   branch: string;

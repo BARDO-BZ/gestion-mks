@@ -13,7 +13,9 @@ import {
 export interface Epp {
   id: number;
   code: string;
-  institution: string;
+  institution_id: number;
+  institution?: string | null; // legacy display (si existe)
+  institution_name?: string | null; // viene del JOIN (admin)
   branch: string;
   service: string;
   status: string;
@@ -25,43 +27,73 @@ export interface Epp {
 
 interface EppsTableProps {
   data: Epp[];
+  isAdmin: boolean;
 }
 
-export function EppsTable({ data }: EppsTableProps) {
+export function EppsTable({ data, isAdmin }: EppsTableProps) {
+  // ✅ Columnas: armadas como array (sin null/false)
+  const columns: Array<{ key: string; label: string }> = [
+    { key: "code", label: "CODE" },
+    ...(isAdmin ? [{ key: "institution", label: "INSTITUCIÓN" }] : []),
+    { key: "branch", label: "SUCURSAL" },
+    { key: "service", label: "SERVICIO" },
+    { key: "status", label: "ESTADO" },
+    { key: "fabrication", label: "FABRICACIÓN" },
+    { key: "caducidad", label: "CADUCIDAD" },
+  ];
+
   return (
     <Table aria-label="Listado de EPP">
       <TableHeader>
-        <TableColumn>CODE</TableColumn>
-        <TableColumn>INSTITUCIÓN</TableColumn>
-        <TableColumn>SUCURSAL</TableColumn>
-        <TableColumn>SERVICIO</TableColumn>
-        <TableColumn>ESTADO</TableColumn>
-        <TableColumn>FABRICACIÓN</TableColumn>
-        <TableColumn>CADUCIDAD</TableColumn>
+        {columns.map((c) => (
+          <TableColumn key={c.key}>{c.label}</TableColumn>
+        ))}
       </TableHeader>
 
-      {/* IMPORTANTE: solo TableRow/TableCell dentro del TableBody */}
       <TableBody emptyContent="No hay EPP cargados">
-        {data.map((epp) => (
-          <TableRow key={epp.id}>
-            <TableCell>
-              {/* Link SOLO dentro de la celda, no envolviendo la fila */}
-              <Link href={`/epp/${epp.id}`} className="underline text-primary">
-                {epp.code}
-              </Link>
-            </TableCell>
-            <TableCell>{epp.institution}</TableCell>
-            <TableCell>{epp.branch}</TableCell>
-            <TableCell>{epp.service}</TableCell>
-            <TableCell>{epp.status}</TableCell>
-            <TableCell>
-              {epp.fabrication_month}/{epp.fabrication_year}
-            </TableCell>
-            <TableCell>
-              {epp.caducidad_month}/{epp.caducidad_year}
-            </TableCell>
-          </TableRow>
-        ))}
+        {data.map((epp) => {
+          // ✅ Celdas: también armadas como array (sin null/false)
+          const cells: Array<{ key: string; node: React.ReactNode }> = [
+            {
+              key: "code",
+              node: (
+                <Link
+                  href={`/epp/${epp.id}`}
+                  className="underline text-primary"
+                >
+                  {epp.code}
+                </Link>
+              ),
+            },
+            ...(isAdmin
+              ? [
+                  {
+                    key: "institution",
+                    node: epp.institution_name ?? epp.institution ?? "—",
+                  },
+                ]
+              : []),
+            { key: "branch", node: epp.branch },
+            { key: "service", node: epp.service },
+            { key: "status", node: epp.status },
+            {
+              key: "fabrication",
+              node: `${epp.fabrication_month}/${epp.fabrication_year}`,
+            },
+            {
+              key: "caducidad",
+              node: `${epp.caducidad_month}/${epp.caducidad_year}`,
+            },
+          ];
+
+          return (
+            <TableRow key={epp.id}>
+              {cells.map((c) => (
+                <TableCell key={c.key}>{c.node}</TableCell>
+              ))}
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );
