@@ -19,11 +19,14 @@ import { EppTasksList } from "./EppTasksList";
 import { EppInspectionsList } from "./EppInspectionsList";
 import { EppInspectionForm } from "./EppInspectionForm";
 import { EppLogs } from "./EppLogs";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Epp {
   id: number;
   code: string;
-  institution: string;
+  institution_id: number;
+  institution_name?: string | null;
+  institution?: string | null; // legacy fallback
   branch: string;
   service: string;
   fabrication_month: number;
@@ -57,6 +60,10 @@ interface Props {
 
 export function EppDetailView({ id }: Props) {
   const router = useRouter();
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [epp, setEpp] = useState<Epp | null>(null);
   const [logs, setLogs] = useState<EppLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -267,10 +274,13 @@ export function EppDetailView({ id }: Props) {
               <span className="font-semibold">Código / Nº de serie</span>
               <span>{epp.code}</span>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold">Institución</span>
-              <span>{epp.institution}</span>
-            </div>
+            {isAdmin && (
+              <div className="flex flex-col gap-1">
+                <span className="font-semibold">Institución</span>
+                <span>{epp.institution}</span>
+              </div>
+            )}
+
             <div className="flex flex-col gap-1">
               <span className="font-semibold">Sucursal</span>
               <span>{epp.branch}</span>

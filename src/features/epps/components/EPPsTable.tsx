@@ -9,16 +9,17 @@ import {
   TableRow,
   TableCell,
 } from "@heroui/react";
+import { eppStatusLabel } from "../utils/eppStatus";
 
 export interface Epp {
   id: number;
   code: string;
   institution_id: number;
-  institution?: string | null; // legacy display (si existe)
-  institution_name?: string | null; // viene del JOIN (admin)
+  institution?: string | null;
+  institution_name?: string | null;
   branch: string;
   service: string;
-  status: string;
+  status: "APPROVED" | "RESERVED" | "TO_DISCARD" | "DISCARDED" | string;
   fabrication_year: number;
   fabrication_month: number;
   caducidad_year: number;
@@ -31,7 +32,6 @@ interface EppsTableProps {
 }
 
 export function EppsTable({ data, isAdmin }: EppsTableProps) {
-  // ✅ Columnas: armadas como array (sin null/false)
   const columns: Array<{ key: string; label: string }> = [
     { key: "code", label: "CODE" },
     ...(isAdmin ? [{ key: "institution", label: "INSTITUCIÓN" }] : []),
@@ -75,7 +75,7 @@ export function EppsTable({ data, isAdmin }: EppsTableProps) {
               : []),
             { key: "branch", node: epp.branch },
             { key: "service", node: epp.service },
-            { key: "status", node: epp.status },
+            { key: "status", node: eppStatusLabel(epp.status) },
             {
               key: "fabrication",
               node: `${epp.fabrication_month}/${epp.fabrication_year}`,
