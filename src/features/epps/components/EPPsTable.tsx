@@ -8,6 +8,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Chip,
 } from "@heroui/react";
 import { eppStatusLabel } from "../utils/eppStatus";
 
@@ -24,6 +25,7 @@ export interface Epp {
   fabrication_month: number;
   caducidad_year: number;
   caducidad_month: number;
+  open_tasks_count?: number;
 }
 
 interface EppsTableProps {
@@ -75,7 +77,19 @@ export function EppsTable({ data, isAdmin }: EppsTableProps) {
               : []),
             { key: "branch", node: epp.branch },
             { key: "service", node: epp.service },
-            { key: "status", node: eppStatusLabel(epp.status) },
+            {
+              key: "status",
+              node: (
+                <div className="flex items-center gap-2">
+                  <span>{eppStatusLabel(epp.status)}</span>
+                  {(epp.open_tasks_count ?? 0) > 0 && (
+                    <Chip size="sm" color="warning" variant="flat">
+                      {epp.open_tasks_count} tareas
+                    </Chip>
+                  )}
+                </div>
+              ),
+            },
             {
               key: "fabrication",
               node: `${epp.fabrication_month}/${epp.fabrication_year}`,

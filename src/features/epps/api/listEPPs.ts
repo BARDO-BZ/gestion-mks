@@ -67,9 +67,16 @@ export async function listEppsHandler(req: NextRequest) {
     // total
     const [countRows]: any = await connection.execute(
       `
-      SELECT COUNT(*) as total
-      FROM epps e
-      LEFT JOIN institutions i ON i.id = e.institution_id
+      SELECT
+  e.*,
+  i.name AS institution_name,
+  (
+    SELECT COUNT(*)
+    FROM epp_tasks t
+    WHERE t.epp_id = e.id AND t.status = 'OPEN'
+  ) AS open_tasks_count
+FROM epps e
+LEFT JOIN institutions i ON i.id = e.institution_id
       ${whereSql}
       `,
       values,

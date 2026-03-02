@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { ICreateEppBody } from "../interfaces/epp";
 import { requireInstitutionAccess } from "@/lib/authz";
+import { calculateEppStatus } from "../utils/calculateEPPStatus";
 
 export async function createEppHandler(req: NextRequest) {
   try {
@@ -73,9 +74,20 @@ export async function createEppHandler(req: NextRequest) {
     const caducidad_month = fabrication_month;
     const caducidad_year = fabrication_year + cadYears;
 
+    const { computedStatus } = calculateEppStatus({
+      status: "APPROVED",
+      fabrication_year,
+      fabrication_month,
+      caducidad_year,
+      caducidad_month,
+      inspection_freq: inspFreq,
+      lastInspectionAt: null,
+      openTasksCount: 0,
+    });
+
     const [result]: any = await connection.execute(
       `INSERT INTO epps
-        (code, institution_id, institution, branch, service,
+        (code, institution_id, branch, service,
          fabrication_month, fabrication_year,
          caducidad_month, caducidad_year,
          caducidad_years, inspection_freq,
@@ -84,7 +96,6 @@ export async function createEppHandler(req: NextRequest) {
       [
         code,
         institution_id,
-        institutionName, // legacy display hasta que borres la columna
         branch,
         service,
         fabrication_month,
@@ -93,7 +104,7 @@ export async function createEppHandler(req: NextRequest) {
         caducidad_year,
         cadYears,
         inspFreq,
-        "APPROVED",
+        computedStatus,
         user.id,
       ],
     );

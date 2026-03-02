@@ -33,7 +33,12 @@ export async function getEppHandler(req: NextRequest, eppId: string) {
 
     // 2️⃣ Traer EPP completo (ya validado el acceso)
     const [eppRows]: any = await connection.execute(
-      "SELECT * FROM epps WHERE id = ?",
+      `
+  SELECT e.*, i.name AS institution_name
+  FROM epps e
+  LEFT JOIN institutions i ON i.id = e.institution_id
+  WHERE e.id = ?
+  `,
       [idNum],
     );
 

@@ -44,7 +44,7 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
           code,
           branch,
           service,
-          fabrication_month: Number(fabricationMonth),
+          fabrication_month: 1,
           fabrication_year: Number(fabricationYear),
           caducidad_years: Number(caducidadYears),
           inspection_freq: inspectionFreq,
@@ -91,7 +91,7 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Select
+        {/* <Select
           label="Mes de fabricación"
           selectedKeys={new Set([fabricationMonth])}
           onSelectionChange={(keys) => {
@@ -103,7 +103,7 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
           {MONTHS.map((month) => (
             <SelectItem key={month.key}>{month.label}</SelectItem>
           ))}
-        </Select>
+        </Select> */}
 
         <Input
           label="Año de fabricación"
@@ -120,8 +120,8 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
             setCaducidadYears(Array.from(keys)[0] as string)
           }
         >
-          {Array.from({ length: 10 }).map((_, i) => {
-            const y = (i + 1).toString();
+          {Array.from({ length: 5 }).map((_, i) => {
+            const y = (i + 3).toString(); // 3..7
             return <SelectItem key={y}>{y}</SelectItem>;
           })}
         </Select>

@@ -277,7 +277,7 @@ export function EppDetailView({ id }: Props) {
             {isAdmin && (
               <div className="flex flex-col gap-1">
                 <span className="font-semibold">Institución</span>
-                <span>{epp.institution}</span>
+                <span>{epp.institution_name ?? "-"}</span>
               </div>
             )}
 

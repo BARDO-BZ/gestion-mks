@@ -20,7 +20,7 @@ export interface CalculatedStatusResult {
 }
 
 export function calculateEppStatus(
-  input: CalculateStatusInput
+  input: CalculateStatusInput,
 ): CalculatedStatusResult {
   const {
     status,
@@ -38,14 +38,14 @@ export function calculateEppStatus(
   const fabricationDate = new Date(
     fabrication_year,
     (fabrication_month || 1) - 1,
-    1
+    1,
   );
   const caducidadDate = new Date(caducidad_year, (caducidad_month || 1) - 1, 1);
 
   const caducidadPlus12 = new Date(
     caducidadDate.getFullYear(),
     caducidadDate.getMonth() + 12,
-    1
+    1,
   );
 
   const referenceInspectionDate = lastInspectionAt
@@ -57,7 +57,7 @@ export function calculateEppStatus(
   const nextInspection = new Date(
     referenceInspectionDate.getFullYear(),
     referenceInspectionDate.getMonth() + monthsToAdd,
-    1
+    1,
   );
 
   const inspectionOverdue = now > nextInspection;
@@ -82,7 +82,7 @@ export function calculateEppStatus(
   }
 
   // Si ya pasó caducidad + 12 meses → A descartar
-  if (now > caducidadPlus12) {
+  if (now > caducidadDate) {
     return {
       computedStatus: "TO_DISCARD",
       inspectionOverdue,
@@ -91,7 +91,7 @@ export function calculateEppStatus(
   }
 
   // Si hay tareas abiertas o inspección vencida o fecha > caducidad → Uso bajo reserva
-  if (hasOpenTasks || inspectionOverdue || now > caducidadDate) {
+  if (hasOpenTasks || inspectionOverdue) {
     return {
       computedStatus: "RESERVED",
       inspectionOverdue,
