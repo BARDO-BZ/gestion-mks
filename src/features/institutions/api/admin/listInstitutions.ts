@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { requireAdmin } from "@/lib/authz";
 
+export type InstitutionStatus = "active" | "inactive";
+
+export interface AdminInstitutionRow {
+  id: number;
+  name: string;
+  status: InstitutionStatus;
+  created_at: string;
+  users_count: number;
+  epps_count: number;
+}
+
 export async function listInstitutionsHandler(req: NextRequest) {
   try {
     const auth = await requireAdmin(req);
