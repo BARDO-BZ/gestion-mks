@@ -3,7 +3,8 @@ import { updateUserStatusAdminHandler } from "@/features/users/api/admin/updateU
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
-  return updateUserStatusAdminHandler(req, params.id);
+  const { id } = await context.params;
+  return updateUserStatusAdminHandler(req, id);
 }

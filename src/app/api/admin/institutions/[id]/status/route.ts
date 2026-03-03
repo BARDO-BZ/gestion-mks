@@ -3,7 +3,8 @@ import { updateInstitutionStatusHandler } from "@/features/institutions/api/admi
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
-  return updateInstitutionStatusHandler(req, params.id);
+  const { id } = await context.params;
+  return updateInstitutionStatusHandler(req, id);
 }

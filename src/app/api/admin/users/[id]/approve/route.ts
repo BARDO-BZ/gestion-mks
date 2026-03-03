@@ -3,7 +3,8 @@ import { approveUserAdminHandler } from "@/features/users/api/admin/approveUser"
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
-  return approveUserAdminHandler(req, params.id);
+  const { id } = await context.params;
+  return approveUserAdminHandler(req, id);
 }
