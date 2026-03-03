@@ -3,7 +3,8 @@ import { updateInstitutionHandler } from "@/features/institutions/api/admin/upda
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  return updateInstitutionHandler(req, params.id);
+  const { id } = await params;
+  return updateInstitutionHandler(req, id);
 }
