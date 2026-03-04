@@ -20,6 +20,7 @@ export async function listEppsHandler(req: NextRequest) {
     const service = searchParams.get("service") || "";
     const status = searchParams.get("status") || "";
     const search = searchParams.get("search") || "";
+    const sortBy = searchParams.get("sortBy") || "default";
 
     const whereParts: string[] = [];
     const values: any[] = [];
@@ -66,19 +67,10 @@ export async function listEppsHandler(req: NextRequest) {
 
     // total
     const [countRows]: any = await connection.execute(
-      `
-      SELECT
-  e.*,
-  i.name AS institution_name,
-  (
-    SELECT COUNT(*)
-    FROM epp_tasks t
-    WHERE t.epp_id = e.id AND t.status = 'OPEN'
-  ) AS open_tasks_count
-FROM epps e
-LEFT JOIN institutions i ON i.id = e.institution_id
-      ${whereSql}
-      `,
+      `SELECT COUNT(*) AS total
+       FROM epps e
+       LEFT JOIN institutions i ON i.id = e.institution_id
+       ${whereSql}`,
       values,
     );
     const total = countRows[0]?.total ?? 0;
@@ -88,14 +80,50 @@ LEFT JOIN institutions i ON i.id = e.institution_id
     const safePage = Number.isFinite(page) && page > 0 ? page : 1;
     const offset = (safePage - 1) * safePageSize;
 
+    // Status priority: TO_DISCARD → RESERVED → APPROVED → DISCARDED → DELETED
+    const statusPriority = `CASE e.status
+      WHEN 'TO_DISCARD' THEN 1
+      WHEN 'RESERVED'   THEN 2
+      WHEN 'APPROVED'   THEN 3
+      WHEN 'DISCARDED'  THEN 4
+      WHEN 'DELETED'    THEN 5
+      ELSE 6
+    END`;
+
+    // Oldest first within RESERVED and APPROVED
+    const oldestFirst = `
+      CASE WHEN e.status IN ('RESERVED','APPROVED') THEN e.fabrication_year  ELSE 0 END ASC,
+      CASE WHEN e.status IN ('RESERVED','APPROVED') THEN e.fabrication_month ELSE 0 END ASC`;
+
+    const openTasksSubquery = `(SELECT COUNT(*) FROM epp_tasks t WHERE t.epp_id = e.id AND t.status = 'OPEN')`;
+
+    let orderBy: string;
+    switch (sortBy) {
+      case "institution":
+        orderBy = `i.name ASC, ${statusPriority} ASC, ${oldestFirst}, e.service ASC`;
+        break;
+      case "service":
+        orderBy = `e.service ASC, ${statusPriority} ASC, ${oldestFirst}`;
+        break;
+      case "next_inspection":
+        orderBy = `${statusPriority} ASC, e.caducidad_year ASC, e.caducidad_month ASC, i.name ASC, e.service ASC`;
+        break;
+      case "open_tasks":
+        orderBy = `${openTasksSubquery} DESC, ${statusPriority} ASC, ${oldestFirst}, i.name ASC, e.service ASC`;
+        break;
+      default:
+        orderBy = `${statusPriority} ASC, ${oldestFirst}, i.name ASC, e.service ASC`;
+    }
+
     const sqlData = `
       SELECT
         e.*,
-        i.name AS institution_name
+        i.name AS institution_name,
+        ${openTasksSubquery} AS open_tasks_count
       FROM epps e
       LEFT JOIN institutions i ON i.id = e.institution_id
       ${whereSql}
-      ORDER BY e.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT ${safePageSize} OFFSET ${offset}
     `;
 

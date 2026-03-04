@@ -1,7 +1,7 @@
 // src/components/epp/EppsView.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Button,
@@ -18,10 +18,26 @@ import { EppForm } from "./EppForm";
 import { EppImportModal } from "./EppImportModal";
 import { useAuth } from "@/contexts/AuthContext";
 
+type SortBy = "default" | "institution" | "service" | "next_inspection" | "open_tasks";
+
+const SORT_OPTIONS: { key: SortBy; label: string }[] = [
+  { key: "default",          label: "Predeterminado" },
+  { key: "institution",      label: "Por institución" },
+  { key: "service",          label: "Por servicio" },
+  { key: "next_inspection",  label: "Próximas inspecciones" },
+  { key: "open_tasks",       label: "Tareas pendientes" },
+];
+
+const PAGE_SIZE = 20;
+
 export function EppsView() {
   const [data, setData] = useState<Epp[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("default");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -34,22 +50,24 @@ export function EppsView() {
   } = useDisclosure();
   const debouncedSearch = useDebounce(search, 500);
 
-  const fetchData = async () => {
+  const fetchData = async (currentPage = page) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
+      params.set("sortBy", sortBy);
+      params.set("page", String(currentPage));
+      params.set("pageSize", String(PAGE_SIZE));
 
-      const query = params.toString();
-      const url = `/api/epps/list${query ? `?${query}` : ""}`;
-
-      const res = await fetch(url, {
+      const res = await fetch(`/api/epps/list?${params.toString()}`, {
         method: "GET",
         credentials: "include",
       });
 
       const json = await res.json();
       setData(json.data || []);
+      setTotal(json.pagination?.total ?? 0);
+      setTotalPages(json.pagination?.totalPages ?? 1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -57,10 +75,25 @@ export function EppsView() {
     }
   };
 
+  const skipPageEffect = useRef(false);
+
+  // Reset to page 1 when search or sort changes, fetch directly
   useEffect(() => {
-    fetchData();
+    skipPageEffect.current = true;
+    setPage(1);
+    fetchData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+  }, [debouncedSearch, sortBy]);
+
+  // Fetch when user explicitly changes page
+  useEffect(() => {
+    if (skipPageEffect.current) {
+      skipPageEffect.current = false;
+      return;
+    }
+    fetchData(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   return (
     <div className="p-6 flex flex-col gap-4">
@@ -90,7 +123,48 @@ export function EppsView() {
         </div>
       </div>
 
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-xs text-gray-400 uppercase tracking-wide">Ordenar:</span>
+        {SORT_OPTIONS.map((opt) => (
+          <Button
+            key={opt.key}
+            size="sm"
+            variant={sortBy === opt.key ? "solid" : "flat"}
+            color={sortBy === opt.key ? "primary" : "default"}
+            onPress={() => setSortBy(opt.key)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+
       <EppsTable data={data} isAdmin={isAdmin} />
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-gray-500">
+            {total} resultado{total !== 1 ? "s" : ""} — página {page} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="flat"
+              isDisabled={page <= 1 || loading}
+              onPress={() => setPage((p) => p - 1)}
+            >
+              ← Anterior
+            </Button>
+            <Button
+              size="sm"
+              variant="flat"
+              isDisabled={page >= totalPages || loading}
+              onPress={() => setPage((p) => p + 1)}
+            >
+              Siguiente →
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalContent>
