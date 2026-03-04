@@ -1,26 +1,5 @@
-"use client";
+import { ReportsView } from "@/features/reports/components/ReportsView";
 
-import React from "react";
-import { useAuth } from "@/contexts/AuthContext";
-
-export default function Reportes() {
-  const { user, logout, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Cargando...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">No autorizado</div>
-      </div>
-    );
-  }
-
-  return <div>Reportes</div>;
+export default function ReportesPage() {
+  return <ReportsView />;
 }
