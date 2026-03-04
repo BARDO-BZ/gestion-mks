@@ -180,42 +180,47 @@ export function ReportsView() {
           <p className="text-sm text-gray-500">{rows.length} resultado{rows.length !== 1 ? "s" : ""}</p>
           <Table aria-label="Reporte de EPPs" className="mt-1">
             <TableHeader>
-              <TableColumn>Código</TableColumn>
-              {isAdmin && <TableColumn>Institución</TableColumn>}
-              <TableColumn>Sucursal</TableColumn>
-              <TableColumn>Servicio</TableColumn>
-              <TableColumn>Estado</TableColumn>
-              <TableColumn>Fabricación</TableColumn>
-              <TableColumn>Caducidad</TableColumn>
-              <TableColumn>Última inspección</TableColumn>
-              <TableColumn>Tareas</TableColumn>
+              {[
+                { key: "code",            label: "Código" },
+                ...(isAdmin ? [{ key: "institution", label: "Institución" }] : []),
+                { key: "branch",          label: "Sucursal" },
+                { key: "service",         label: "Servicio" },
+                { key: "status",          label: "Estado" },
+                { key: "fabrication",     label: "Fabricación" },
+                { key: "caducidad",       label: "Caducidad" },
+                { key: "last_inspection", label: "Última inspección" },
+                { key: "tasks",           label: "Tareas" },
+              ].map((col) => (
+                <TableColumn key={col.key}>{col.label}</TableColumn>
+              ))}
             </TableHeader>
             <TableBody>
-              {rows.map((r, i) => (
-                <TableRow key={i}>
-                  <TableCell>{r.code}</TableCell>
-                  {isAdmin && <TableCell>{r.institution_name ?? "—"}</TableCell>}
-                  <TableCell>{r.branch}</TableCell>
-                  <TableCell>{r.service}</TableCell>
-                  <TableCell>
+              {rows.map((r, i) => {
+                const cells = [
+                  { key: "code",            node: r.code },
+                  ...(isAdmin ? [{ key: "institution", node: r.institution_name ?? "—" }] : []),
+                  { key: "branch",          node: r.branch },
+                  { key: "service",         node: r.service },
+                  { key: "status",          node: (
                     <Chip size="sm" color={STATUS_COLORS[r.status] ?? "default"} variant="flat">
                       {eppStatusLabel(r.status)}
                     </Chip>
-                  </TableCell>
-                  <TableCell>{r.fabrication_month}/{r.fabrication_year}</TableCell>
-                  <TableCell>{r.caducidad_month}/{r.caducidad_year}</TableCell>
-                  <TableCell>
-                    {r.last_inspection_at
+                  )},
+                  { key: "fabrication",     node: `${r.fabrication_month}/${r.fabrication_year}` },
+                  { key: "caducidad",       node: `${r.caducidad_month}/${r.caducidad_year}` },
+                  { key: "last_inspection", node: r.last_inspection_at
                       ? new Date(r.last_inspection_at).toLocaleDateString("es-AR")
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {Number(r.open_tasks) > 0
+                      : "—" },
+                  { key: "tasks",           node: Number(r.open_tasks) > 0
                       ? <Chip size="sm" color="warning" variant="flat">{r.open_tasks}</Chip>
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      : "—" },
+                ];
+                return (
+                  <TableRow key={i}>
+                    {cells.map((c) => <TableCell key={c.key}>{c.node}</TableCell>)}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </>
