@@ -3,8 +3,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import connection from "@/lib/db";
 import { IUser, ILoginBody } from "@/features/users/interfaces";
+import { recordFailedAttempt } from "@/lib/loginRateLimiter";
 
-export async function loginHandler(body: ILoginBody) {
+export async function loginHandler(body: ILoginBody, ip?: string) {
   const { email, password, rememberMe } = body;
 
   if (!email || !password) {
@@ -28,6 +29,7 @@ export async function loginHandler(body: ILoginBody) {
     );
 
     if (!rows || rows.length === 0) {
+      if (ip) await recordFailedAttempt(ip);
       return NextResponse.json(
         { message: "Credenciales inválidas" },
         { status: 401 },
@@ -39,6 +41,7 @@ export async function loginHandler(body: ILoginBody) {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
+      if (ip) await recordFailedAttempt(ip);
       return NextResponse.json(
         { message: "Credenciales inválidas" },
         { status: 401 },
