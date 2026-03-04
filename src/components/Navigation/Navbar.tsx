@@ -14,6 +14,7 @@ import {
   HelpIcon,
   InstitutionIcon,
   UserIcon,
+  ActivityIcon,
 } from "@/components/Icon";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,6 +45,12 @@ const ALL_ITEMS: NavItem[] = [
     href: "/admin/institutions",
     label: "Instituciones",
     Icon: InstitutionIcon,
+    roles: ["admin"],
+  },
+  {
+    href: "/admin/logs",
+    label: "Actividad",
+    Icon: ActivityIcon,
     roles: ["admin"],
   },
   {
