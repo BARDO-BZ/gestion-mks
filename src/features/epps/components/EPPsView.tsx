@@ -111,7 +111,7 @@ export function EppsView() {
             value={search}
             onValueChange={setSearch}
           />
-          <Button onPress={fetchData} isDisabled={loading}>
+          <Button onPress={() => fetchData()} isDisabled={loading}>
             {loading ? "Cargando..." : "Buscar"}
           </Button>
           <Button variant="flat" onPress={onImportOpen}>
