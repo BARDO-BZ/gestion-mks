@@ -25,6 +25,16 @@ export async function registerHandler(req: NextRequest) {
     );
   }
 
+  if (email.length > 255) {
+    return NextResponse.json({ message: "Email demasiado largo" }, { status: 400 });
+  }
+  if (name.length > 100) {
+    return NextResponse.json({ message: "Nombre demasiado largo (máx 100 caracteres)" }, { status: 400 });
+  }
+  if (lastName.length > 100) {
+    return NextResponse.json({ message: "Apellido demasiado largo (máx 100 caracteres)" }, { status: 400 });
+  }
+
   // Validar formato de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
@@ -34,10 +44,10 @@ export async function registerHandler(req: NextRequest) {
     );
   }
 
-  // Validar contraseña (mínimo 8 caracteres)
-  if (password.length < 8) {
+  // Validar contraseña (mínimo 8 caracteres, máximo 72 por límite de bcrypt)
+  if (password.length < 8 || password.length > 72) {
     return NextResponse.json(
-      { message: "La contraseña debe tener al menos 8 caracteres" },
+      { message: "La contraseña debe tener entre 8 y 72 caracteres" },
       { status: 400 },
     );
   }

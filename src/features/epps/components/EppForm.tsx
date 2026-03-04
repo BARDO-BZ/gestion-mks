@@ -1,22 +1,34 @@
 // src/components/epp/EppForm.tsx
 "use client";
 
-import { useState } from "react";
-import { Button, Input, Select, SelectItem } from "@heroui/react";
+import { useEffect, useState } from "react";
+import { Button, Input, Select, SelectItem, Spinner } from "@heroui/react";
 import { MONTHS } from "@/data";
+import { useAuth } from "@/contexts/AuthContext";
+
 type InspectionFrequency = "ANNUAL" | "SEMESTRAL";
 
+interface InstitutionOption {
+  id: number;
+  name: string;
+}
+
 interface EppFormProps {
-  onCreated: () => void; // para refrescar la tabla
-  onClose: () => void; // para cerrar el modal/drawer
+  onCreated: () => void;
+  onClose: () => void;
 }
 
 export function EppForm({ onCreated, onClose }: EppFormProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [institutions, setInstitutions] = useState<InstitutionOption[]>([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+
   const [code, setCode] = useState("");
-  const [institution, setInstitution] = useState("");
+  const [institutionId, setInstitutionId] = useState<string>("");
   const [branch, setBranch] = useState("");
   const [service, setService] = useState("");
-  const [fabricationMonth, setFabricationMonth] = useState("1");
   const [fabricationYear, setFabricationYear] = useState("");
   const [caducidadYears, setCaducidadYears] = useState("5");
   const [inspectionFreq, setInspectionFreq] =
@@ -24,6 +36,16 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    setLoadingInstitutions(true);
+    fetch("/api/admin/institutions?pageSize=200", { credentials: "include" })
+      .then((r) => r.json())
+      .then((j) => setInstitutions(j.data || []))
+      .catch(() => {})
+      .finally(() => setLoadingInstitutions(false));
+  }, [isAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,21 +56,32 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
       return;
     }
 
+    if (isAdmin && !institutionId) {
+      setError("Seleccioná una institución");
+      return;
+    }
+
     setSaving(true);
     try {
+      const body: Record<string, unknown> = {
+        code,
+        branch,
+        service,
+        fabrication_month: 1,
+        fabrication_year: Number(fabricationYear),
+        caducidad_years: Number(caducidadYears),
+        inspection_freq: inspectionFreq,
+      };
+
+      if (isAdmin && institutionId) {
+        body.institution_id = Number(institutionId);
+      }
+
       const res = await fetch("/api/epps/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          code,
-          branch,
-          service,
-          fabrication_month: 1,
-          fabrication_year: Number(fabricationYear),
-          caducidad_years: Number(caducidadYears),
-          inspection_freq: inspectionFreq,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -56,7 +89,6 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
         throw new Error(data.message || "Error al crear el EPP");
       }
 
-      // éxito
       onCreated();
       onClose();
     } catch (err: any) {
@@ -69,6 +101,28 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      {isAdmin && (
+        loadingInstitutions ? (
+          <div className="flex items-center gap-2 text-sm text-default-500">
+            <Spinner size="sm" />
+            Cargando instituciones...
+          </div>
+        ) : (
+          <Select
+            label="Institución"
+            isRequired
+            selectedKeys={institutionId ? new Set([institutionId]) : new Set()}
+            onSelectionChange={(keys) =>
+              setInstitutionId(String(Array.from(keys)[0] ?? ""))
+            }
+          >
+            {institutions.map((inst) => (
+              <SelectItem key={String(inst.id)}>{inst.name}</SelectItem>
+            ))}
+          </Select>
+        )
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Input
           label="Código / Nº de serie"
@@ -91,20 +145,6 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* <Select
-          label="Mes de fabricación"
-          selectedKeys={new Set([fabricationMonth])}
-          onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string;
-            setFabricationMonth(value);
-          }}
-          className="w-full"
-        >
-          {MONTHS.map((month) => (
-            <SelectItem key={month.key}>{month.label}</SelectItem>
-          ))}
-        </Select> */}
-
         <Input
           label="Año de fabricación"
           type="number"

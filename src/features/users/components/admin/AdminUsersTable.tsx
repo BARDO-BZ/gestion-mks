@@ -2,6 +2,7 @@
 
 import {
   Button,
+  Chip,
   Select,
   SelectItem,
   Table,
@@ -52,7 +53,16 @@ export function AdminUsersTable(props: {
       <TableBody emptyContent="No hay usuarios para mostrar">
         {users.map((u) => (
           <TableRow key={u.id}>
-            <TableCell>{u.email}</TableCell>
+            <TableCell>
+              <div className="flex flex-col gap-1">
+                <span>{u.email}</span>
+                {u.role !== "admin" && u.institution_id === null && (
+                  <Chip size="sm" color="warning" variant="flat">
+                    Sin institución
+                  </Chip>
+                )}
+              </div>
+            </TableCell>
             <TableCell>{(u.name || "") + " " + (u.last_name || "")}</TableCell>
             <TableCell>{u.role}</TableCell>
             <TableCell>{statusLabel[u.status] || u.status}</TableCell>

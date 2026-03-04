@@ -53,6 +53,47 @@ export async function createEppHandler(req: NextRequest) {
       );
     }
 
+    if (code.length > 100) {
+      return NextResponse.json(
+        { message: "Código demasiado largo (máx 100 caracteres)" },
+        { status: 400 },
+      );
+    }
+    if (branch.length > 100) {
+      return NextResponse.json(
+        { message: "Sucursal demasiado larga (máx 100 caracteres)" },
+        { status: 400 },
+      );
+    }
+    if (service.length > 100) {
+      return NextResponse.json(
+        { message: "Servicio demasiado largo (máx 100 caracteres)" },
+        { status: 400 },
+      );
+    }
+
+    const currentYear = new Date().getFullYear();
+    if (
+      !Number.isInteger(fabrication_year) ||
+      fabrication_year < 1900 ||
+      fabrication_year > currentYear
+    ) {
+      return NextResponse.json(
+        { message: `Año de fabricación inválido (1900–${currentYear})` },
+        { status: 400 },
+      );
+    }
+    if (
+      !Number.isInteger(fabrication_month) ||
+      fabrication_month < 1 ||
+      fabrication_month > 12
+    ) {
+      return NextResponse.json(
+        { message: "Mes de fabricación inválido (1–12)" },
+        { status: 400 },
+      );
+    }
+
     // Traer el nombre real de la institución (para display/legacy)
     const [instRows]: any = await connection.execute(
       `SELECT name FROM institutions WHERE id = ?`,
@@ -92,7 +133,7 @@ export async function createEppHandler(req: NextRequest) {
          caducidad_month, caducidad_year,
          caducidad_years, inspection_freq,
          status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         code,
         institution_id,

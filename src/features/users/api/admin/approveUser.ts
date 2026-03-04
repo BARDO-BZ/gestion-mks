@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { EmailService } from "@/features/email/services/email-service"; // si ya lo tenés
+import { logAdminAction } from "@/lib/adminLog";
 
 type UserRow = {
   id: number;
@@ -80,6 +81,14 @@ export async function approveUserAdminHandler(req: NextRequest, id: string) {
        WHERE id = ?`,
       [finalInstitutionId ?? null, userId],
     );
+
+    await logAdminAction({
+      adminId: auth.id,
+      action: “APPROVE_USER”,
+      targetType: “user”,
+      targetId: userId,
+      details: { institution_id: finalInstitutionId },
+    });
 
     // Email “cuenta aprobada”
     // OJO: si no querés enviar todavía, comentá esto.

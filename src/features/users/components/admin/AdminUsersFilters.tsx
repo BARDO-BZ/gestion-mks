@@ -11,8 +11,8 @@ export function AdminUsersFilters(props: {
   status: UserStatus | "all";
   onStatusChange: (v: UserStatus | "all") => void;
 
-  institutionId: number | "all";
-  onInstitutionChange: (v: number | "all") => void;
+  institutionId: number | "all" | "null";
+  onInstitutionChange: (v: number | "all" | "null") => void;
 
   institutions: InstitutionOption[];
 }) {
@@ -57,12 +57,15 @@ export function AdminUsersFilters(props: {
           label="Institución"
           items={[
             { id: "all", name: "Todas" },
+            { id: "null", name: "Sin institución" },
             ...institutions.map((i) => ({ id: String(i.id), name: i.name })),
           ]}
           selectedKeys={[String(institutionId)]}
           onSelectionChange={(keys) => {
             const key = String(Array.from(keys)[0]);
-            onInstitutionChange(key === "all" ? "all" : Number(key));
+            if (key === "all") onInstitutionChange("all");
+            else if (key === "null") onInstitutionChange("null");
+            else onInstitutionChange(Number(key));
           }}
         >
           {(item) => <SelectItem key={item.id}>{item.name}</SelectItem>}

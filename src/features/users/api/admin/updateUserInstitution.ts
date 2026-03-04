@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
+import { logAdminAction } from "@/lib/adminLog";
 
 type UserRow = {
   id: number;
@@ -84,6 +85,17 @@ export async function updateUserInstitutionAdminHandler(
        WHERE id = ?`,
       [institution_id ?? null, userId],
     );
+
+    await logAdminAction({
+      adminId: auth.id,
+      action: "ASSIGN_INSTITUTION",
+      targetType: "user",
+      targetId: userId,
+      details: {
+        old_institution_id: user.institution_id,
+        new_institution_id: institution_id,
+      },
+    });
 
     return NextResponse.json({ message: "Institución actualizada" });
   } catch (error) {

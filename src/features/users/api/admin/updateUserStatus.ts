@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
+import { logAdminAction } from "@/lib/adminLog";
 
 type UserRow = {
   id: number;
@@ -68,6 +69,14 @@ export async function updateUserStatusAdminHandler(
        WHERE id = ?`,
       [status, userId],
     );
+
+    await logAdminAction({
+      adminId: auth.id,
+      action: "CHANGE_STATUS",
+      targetType: "user",
+      targetId: userId,
+      details: { old_status: user.status, new_status: status },
+    });
 
     return NextResponse.json({ message: "Estado actualizado" });
   } catch (error) {

@@ -44,7 +44,7 @@ export function AdminUsersView() {
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<UserStatus | "all">("pending");
-  const [institutionId, setInstitutionId] = useState<number | "all">("all");
+  const [institutionId, setInstitutionId] = useState<number | "all" | "null">("all");
 
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -74,7 +74,7 @@ export function AdminUsersView() {
     if (search.trim()) params.set("search", search.trim());
     if (status !== "all") params.set("status", status);
     if (institutionId !== "all")
-      params.set("institutionId", String(institutionId));
+      params.set("institution_id", institutionId === "null" ? "null" : String(institutionId));
 
     const res = await fetch(`/api/admin/users?${params.toString()}`, {
       credentials: "include",
@@ -87,7 +87,7 @@ export function AdminUsersView() {
 
     const json = await res.json();
     setUsers(json.data || []);
-    setTotal(Number(json.pagination?.total || 0));
+    setTotal(Number(json.meta?.total || 0));
   };
 
   const refresh = async () => {
@@ -216,7 +216,7 @@ export function AdminUsersView() {
               setStatus(v);
             }}
             institutionId={institutionId}
-            onInstitutionChange={(v) => {
+            onInstitutionChange={(v: number | "all" | "null") => {
               setPage(1);
               setInstitutionId(v);
             }}

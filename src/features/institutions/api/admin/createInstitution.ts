@@ -24,6 +24,13 @@ export async function createInstitutionHandler(req: NextRequest) {
       );
     }
 
+    if (name.length > 150) {
+      return NextResponse.json(
+        { message: "Nombre demasiado largo (máx 150 caracteres)" },
+        { status: 400 },
+      );
+    }
+
     if (!["active", "inactive"].includes(status)) {
       return NextResponse.json({ message: "Status inválido" }, { status: 400 });
     }
