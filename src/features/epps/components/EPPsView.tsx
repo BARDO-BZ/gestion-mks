@@ -15,6 +15,7 @@ import {
 } from "@heroui/react";
 import { Epp, EppsTable } from "./EPPsTable";
 import { EppForm } from "./EppForm";
+import { EppImportModal } from "./EppImportModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function EppsView() {
@@ -26,6 +27,11 @@ export function EppsView() {
   const isAdmin = user?.role === "admin";
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isImportOpen,
+    onOpen: onImportOpen,
+    onClose: onImportClose,
+  } = useDisclosure();
   const debouncedSearch = useDebounce(search, 500);
 
   const fetchData = async () => {
@@ -75,6 +81,9 @@ export function EppsView() {
           <Button onPress={fetchData} isDisabled={loading}>
             {loading ? "Cargando..." : "Buscar"}
           </Button>
+          <Button variant="flat" onPress={onImportOpen}>
+            Importar CSV
+          </Button>
           <Button className="w-[100px]" color="primary" onPress={onOpen}>
             Nuevo EPP
           </Button>
@@ -92,6 +101,25 @@ export function EppsView() {
               </ModalHeader>
               <ModalBody>
                 <EppForm onCreated={fetchData} onClose={close} />
+              </ModalBody>
+              <ModalFooter />
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isImportOpen} onClose={onImportClose} size="2xl">
+        <ModalContent>
+          {(close) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Importar EPPs desde CSV
+              </ModalHeader>
+              <ModalBody>
+                <EppImportModal
+                  onImported={() => { fetchData(); }}
+                  onClose={close}
+                />
               </ModalBody>
               <ModalFooter />
             </>
