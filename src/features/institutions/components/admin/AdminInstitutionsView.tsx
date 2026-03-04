@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Button,
   Input,
@@ -34,6 +35,7 @@ export function AdminInstitutionsView() {
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const debouncedQ = useDebounce(q, 500);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -54,7 +56,7 @@ export function AdminInstitutionsView() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [debouncedQ, status]);
 
   const statusOptions = useMemo(
     () => [

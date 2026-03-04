@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Button,
   Input,
@@ -25,6 +26,7 @@ export function EppsView() {
   const isAdmin = user?.role === "admin";
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const debouncedSearch = useDebounce(search, 500);
 
   const fetchData = async () => {
     setLoading(true);
@@ -52,7 +54,7 @@ export function EppsView() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [debouncedSearch]);
 
   return (
     <div className="p-6 flex flex-col gap-4">
