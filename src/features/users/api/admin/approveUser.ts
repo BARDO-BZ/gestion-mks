@@ -84,8 +84,8 @@ export async function approveUserAdminHandler(req: NextRequest, id: string) {
 
     await logAdminAction({
       adminId: auth.id,
-      action: “APPROVE_USER”,
-      targetType: “user”,
+      action: "APPROVE_USER",
+      targetType: "user",
       targetId: userId,
       details: { institution_id: finalInstitutionId },
     });
