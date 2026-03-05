@@ -1,5 +1,6 @@
 import connection from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { notifyAdmins } from "@/lib/notifyAdmins";
 import {
   dailyNotificationTemplate,
   monthlySummaryTemplate,
@@ -129,4 +130,38 @@ export async function sendMonthlySummary(): Promise<{ sent: boolean }> {
   }
 
   return { sent: true };
+}
+
+// ─── Notificación in-app: inspecciones vencidas ───────────────────────────────
+// Crea una notificación agregada para admins si hay EPPs con inspección vencida.
+
+export async function notifyOverdueInspections(): Promise<void> {
+  const [rows]: any = await connection.execute(`
+    SELECT COUNT(*) AS count
+    FROM epps e
+    WHERE e.status NOT IN ('DELETED','DISCARDED')
+      AND e.inspection_freq IS NOT NULL
+      AND e.inspection_freq != 'NONE'
+      AND (
+        SELECT MAX(i.performed_at)
+        FROM inspections i
+        WHERE i.epp_id = e.id
+      ) < DATE_SUB(NOW(), INTERVAL
+          CASE e.inspection_freq
+            WHEN 'MONTHLY'    THEN 1
+            WHEN 'QUARTERLY'  THEN 3
+            WHEN 'SEMIANNUAL' THEN 6
+            WHEN 'ANNUAL'     THEN 12
+            ELSE 999
+          END MONTH)
+  `);
+
+  const count = Number(rows?.[0]?.count ?? 0);
+  if (count === 0) return;
+
+  await notifyAdmins(
+    "INSPECTION_OVERDUE",
+    `Hay ${count} EPP${count > 1 ? "s" : ""} con inspección vencida`,
+    { count },
+  );
 }

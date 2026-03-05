@@ -8,7 +8,6 @@ import {
   LogoutIcon,
   DashboardIcon,
   ShieldIcon,
-  InspectionIcon,
   FileIcon,
   SettingsIcon,
   HelpIcon,
@@ -16,6 +15,7 @@ import {
   UserIcon,
   ActivityIcon,
 } from "@/components/Icon";
+import { NotificationBell } from "./NotificationBell";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -33,7 +33,6 @@ type NavItem = {
 const ALL_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", Icon: DashboardIcon },
   { href: "/epp", label: "EPP", Icon: ShieldIcon },
-  { href: "/inspections", label: "Inspecciones", Icon: InspectionIcon },
   { href: "/reports", label: "Reportes", Icon: FileIcon },
   {
     href: "/admin/users",
@@ -142,6 +141,12 @@ export default function Navbar() {
           />
         </div>
       </div>
+
+      {role === "admin" && (
+        <div className="fixed top-4 right-4 z-50">
+          <NotificationBell />
+        </div>
+      )}
     </aside>
   );
 }

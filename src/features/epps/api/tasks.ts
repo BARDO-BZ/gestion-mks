@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { addEppLog } from "@/features/epps/utils/addEppLog";
 import { getAuthUser } from "@/lib/auth";
+import { notifyAdmins } from "@/lib/notifyAdmins";
 
 export async function listTasksHandler(req: NextRequest, eppId: string) {
   try {
@@ -79,7 +80,7 @@ export async function closeTaskHandler(req: NextRequest, taskId: string) {
     const idNum = Number(taskId);
 
     const [rows]: any = await connection.execute(
-      `SELECT * FROM epp_tasks WHERE id = ?`,
+      `SELECT t.*, e.code AS epp_code FROM epp_tasks t JOIN epps e ON e.id = t.epp_id WHERE t.id = ?`,
       [idNum],
     );
 
@@ -111,6 +112,12 @@ export async function closeTaskHandler(req: NextRequest, taskId: string) {
       taskId: idNum,
       description: task.description,
     });
+
+    await notifyAdmins(
+      "TASK_CLOSED",
+      `Tarea resuelta en EPP ${task.epp_code}: "${task.description}"`,
+      { eppId: task.epp_id, taskId: idNum },
+    ).catch(() => {});
 
     return NextResponse.json({ message: "Tarea cerrada" }, { status: 200 });
   } catch (error) {

@@ -7,6 +7,8 @@ import {
 } from "../utils/calculateEPPStatus";
 import { addEppLog } from "../utils/addEppLog";
 import { assertEppAccess } from "@/features/epps/utils/assertEppAccess";
+import { notifyAdmins } from "@/lib/notifyAdmins";
+import { eppStatusLabel } from "../utils/eppStatus";
 
 const ALLOWED_STATUSES: EppDbStatus[] = [
   "APPROVED",
@@ -120,6 +122,14 @@ export async function updateEppStatusHandler(req: NextRequest, eppId: string) {
       to: newStatus,
       mode: useComputed ? "COMPUTED" : "MANUAL",
     });
+
+    if (newStatus === "TO_DISCARD" || newStatus === "RESERVED") {
+      await notifyAdmins(
+        "STATUS_CHANGE",
+        `EPP ${epp.code} cambió a "${eppStatusLabel(newStatus)}"`,
+        { eppId: Number(eppId) },
+      ).catch(() => {}); // no bloquea si falla
+    }
 
     return NextResponse.json(
       { message: "Estado actualizado", status: newStatus },

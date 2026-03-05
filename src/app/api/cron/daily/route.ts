@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendDailyNotification } from "@/lib/notificationService";
+import { sendDailyNotification, notifyOverdueInspections } from "@/lib/notificationService";
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("x-cron-secret");
@@ -8,5 +8,6 @@ export async function GET(req: NextRequest) {
   }
 
   const result = await sendDailyNotification();
+  await notifyOverdueInspections().catch(() => {});
   return NextResponse.json(result);
 }

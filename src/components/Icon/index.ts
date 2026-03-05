@@ -10,3 +10,4 @@ export { HelpIcon } from "./HelpIcon";
 export { InstitutionIcon } from "./InstitutionIcon";
 export { UserIcon } from "./UserIcon";
 export { ActivityIcon } from "./ActivityIcon";
+export { BellIcon } from "./BellIcon";

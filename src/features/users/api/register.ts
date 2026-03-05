@@ -6,6 +6,7 @@ import connection from "@/lib/db";
 import { IExistingUser } from "@/features/users/interfaces";
 import { EmailService } from "@/features/email/services/email-service";
 import { getActiveAdminRecipients } from "@/features/users/api/admin/getAdminEmails";
+import { notifyAdmins } from "@/lib/notifyAdmins";
 
 export async function registerHandler(req: NextRequest) {
   if (req.method !== "POST") {
@@ -168,6 +169,11 @@ export async function registerHandler(req: NextRequest) {
           }),
         ),
       );
+
+      await notifyAdmins(
+        "NEW_USER_PENDING",
+        `Nuevo usuario pendiente de aprobación: ${name} ${lastName} (${email})`,
+      ).catch(() => {});
     } catch (emailError) {
       console.error("Error enviando emails:", emailError);
     }

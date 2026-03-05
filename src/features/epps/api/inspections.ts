@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { addEppLog } from "@/features/epps/utils/addEppLog";
 import { assertEppAccess } from "@/features/epps/utils/assertEppAccess";
+import { notifyAdmins } from "@/lib/notifyAdmins";
 
 type StatusFlag = "OK" | "DEFECTUOSO";
 
@@ -109,6 +110,12 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
       body.blindaje_status === "DEFECTUOSO" ||
       body.externa_status === "DEFECTUOSO"
     ) {
+      const [eppRows]: any = await connection.execute(
+        `SELECT code FROM epps WHERE id = ?`,
+        [Number(eppId)],
+      );
+      const eppCode = eppRows?.[0]?.code ?? eppId;
+
       await connection.execute(
         `UPDATE epps
          SET status = 'RESERVED'
@@ -121,6 +128,12 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
         reason: "INSPECTION_DEFECT",
         inspectionId,
       });
+
+      await notifyAdmins(
+        "INSPECTION_DEFECT",
+        `EPP ${eppCode} pasó a "Uso bajo reserva" por defecto detectado en inspección`,
+        { eppId: Number(eppId), inspectionId },
+      ).catch(() => {});
     }
 
     // Log de la inspección
