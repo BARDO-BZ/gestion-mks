@@ -1,11 +1,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardBody, CardHeader, Chip, Spinner } from "@heroui/react";
 import { eppStatusLabel } from "@/features/epps/utils/eppStatus";
+import { logTypeLabel, formatLogDetails } from "@/features/epps/utils/formatLogEntry";
 
 interface StatusCount { status: string; count: number }
 interface NameCount { institution?: string; branch?: string; service?: string; count: number }
+
+interface ExpiringSoonItem {
+  id: number;
+  code: string;
+  institution_name: string;
+  branch: string;
+  caducidad_month: number;
+  caducidad_year: number;
+}
+
+interface PendingInspItem {
+  id: number;
+  code: string;
+  institution_name: string;
+  branch: string;
+  inspection_freq: string;
+  last_inspection_at: string | null;
+}
+
+interface ActivityItem {
+  log_id: number;
+  type: string;
+  details: unknown;
+  created_at: string;
+  epp_id: number;
+  epp_code: string;
+  user_name: string;
+  user_last_name: string;
+}
 
 interface DashboardStats {
   byStatus: StatusCount[];
@@ -14,6 +45,11 @@ interface DashboardStats {
   byBranch: NameCount[];
   byService: NameCount[];
   expiringSoon: number;
+  expiringSoonList: ExpiringSoonItem[];
+  pendingInspectionCount: number;
+  pendingInspectionList: PendingInspItem[];
+  openTasksTotal: number;
+  recentActivity: ActivityItem[];
 }
 
 const STATUS_COLORS: Record<string, "danger" | "warning" | "success" | "default"> = {
@@ -23,11 +59,22 @@ const STATUS_COLORS: Record<string, "danger" | "warning" | "success" | "default"
   DISCARDED:  "default",
 };
 
-function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
+function StatCard({
+  label,
+  value,
+  color,
+  sub,
+}: {
+  label: string;
+  value: number;
+  color?: string;
+  sub?: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center bg-white border border-gray-100 rounded-xl p-4 gap-1 shadow-sm">
       <span className="text-3xl font-bold" style={color ? { color } : undefined}>{value}</span>
       <span className="text-xs text-gray-500 text-center">{label}</span>
+      {sub && <span className="text-[10px] text-gray-400">{sub}</span>}
     </div>
   );
 }
@@ -54,6 +101,16 @@ function DistributionBar({ items, labelKey }: { items: NameCount[]; labelKey: ke
       })}
     </div>
   );
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  return `hace ${days} d`;
 }
 
 export function DashboardView() {
@@ -89,21 +146,29 @@ export function DashboardView() {
   const totalReserved = Number(both_reasons) + Number(open_tasks_only) + Number(overdue_only);
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-      {/* Alerta: vencimientos próximos */}
-      {Number(stats.expiringSoon) > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
-          ⚠ <strong>{stats.expiringSoon}</strong> EPP{Number(stats.expiringSoon) !== 1 ? "s" : ""} con caducidad en los próximos 60 días.
-        </div>
-      )}
+      {/* ── Row 1: KPIs principales ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Total EPPs" value={totalEpps} />
+        <StatCard
+          label="Inspecciones pendientes"
+          value={Number(stats.pendingInspectionCount)}
+          color={Number(stats.pendingInspectionCount) > 0 ? "#f59e0b" : undefined}
+        />
+        <StatCard
+          label="Tareas abiertas"
+          value={Number(stats.openTasksTotal)}
+          color={Number(stats.openTasksTotal) > 0 ? "#f59e0b" : undefined}
+        />
+      </div>
 
-      {/* Totales por estado */}
+      {/* ── Row 2: EPPs por estado ── */}
       <Card>
-        <CardHeader className="pb-0">
+        <CardHeader className="pb-0 flex items-center justify-between">
           <h2 className="text-base font-semibold">EPPs por estado</h2>
-          <span className="ml-auto text-xs text-gray-400">{totalEpps} en total</span>
+          <span className="text-xs text-gray-400">{totalEpps} en total</span>
         </CardHeader>
         <CardBody>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -113,11 +178,7 @@ export function DashboardView() {
                 className="flex flex-col items-center justify-center rounded-xl p-4 gap-1 border"
               >
                 <span className="text-3xl font-bold">{row.count}</span>
-                <Chip
-                  size="sm"
-                  color={STATUS_COLORS[row.status] ?? "default"}
-                  variant="flat"
-                >
+                <Chip size="sm" color={STATUS_COLORS[row.status] ?? "default"} variant="flat">
                   {eppStatusLabel(row.status)}
                 </Chip>
                 <span className="text-xs text-gray-400">
@@ -129,36 +190,147 @@ export function DashboardView() {
         </CardBody>
       </Card>
 
-      {/* Uso Bajo Reserva — motivo */}
+      {/* ── Row 2: Vencimientos + Inspecciones pendientes ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Próximos vencimientos */}
+        <Card>
+          <CardHeader className="pb-0 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Próximos vencimientos</h2>
+            <span className="text-xs text-gray-400">próximos 60 días</span>
+          </CardHeader>
+          <CardBody>
+            {stats.expiringSoonList.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Sin vencimientos próximos</p>
+            ) : (
+              <div className="flex flex-col divide-y divide-gray-100">
+                {stats.expiringSoonList.map((epp) => (
+                  <Link
+                    key={epp.id}
+                    href={`/epp/${epp.id}`}
+                    className="flex items-center justify-between py-2.5 hover:bg-gray-50 rounded-lg px-1 -mx-1 transition-colors group"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium group-hover:text-blue-600 transition-colors">
+                        {epp.code}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {[epp.institution_name, epp.branch].filter(Boolean).join(" · ")}
+                      </span>
+                    </div>
+                    <span className="text-xs font-medium text-amber-600 shrink-0 ml-2">
+                      {epp.caducidad_month}/{epp.caducidad_year}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Inspecciones pendientes */}
+        <Card>
+          <CardHeader className="pb-0 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Inspecciones pendientes</h2>
+            <span className="text-xs text-gray-400">más atrasadas primero</span>
+          </CardHeader>
+          <CardBody>
+            {stats.pendingInspectionList.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Sin inspecciones pendientes</p>
+            ) : (
+              <div className="flex flex-col divide-y divide-gray-100">
+                {stats.pendingInspectionList.map((epp) => (
+                  <Link
+                    key={epp.id}
+                    href={`/epp/${epp.id}`}
+                    className="flex items-center justify-between py-2.5 hover:bg-gray-50 rounded-lg px-1 -mx-1 transition-colors group"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium group-hover:text-blue-600 transition-colors">
+                        {epp.code}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {[epp.institution_name, epp.branch].filter(Boolean).join(" · ")}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <span className="text-xs text-gray-400 block">
+                        {epp.inspection_freq === "SEMESTRAL" ? "Semestral" : "Anual"}
+                      </span>
+                      <span className="text-xs font-medium text-amber-600">
+                        {epp.last_inspection_at
+                          ? new Date(epp.last_inspection_at).toLocaleDateString("es-AR")
+                          : "Nunca"}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* ── Row 3: RESERVED breakdown ── */}
       {totalReserved > 0 && (
         <Card>
-          <CardHeader className="pb-0">
-            <h2 className="text-base font-semibold">Uso Bajo Reserva — motivo</h2>
-            <span className="ml-auto text-xs text-gray-400">{totalReserved} EPPs</span>
+          <CardHeader className="pb-0 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Uso bajo reserva — motivo</h2>
+            <span className="text-xs text-gray-400">{totalReserved} EPPs</span>
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-3 gap-3">
-              <StatCard
-                label="Inspección vencida"
-                value={Number(overdue_only)}
-                color="#f59e0b"
-              />
-              <StatCard
-                label="Tareas abiertas"
-                value={Number(open_tasks_only)}
-                color="#f59e0b"
-              />
-              <StatCard
-                label="Ambos"
-                value={Number(both_reasons)}
-                color="#ef4444"
-              />
+              <StatCard label="Inspección vencida" value={Number(overdue_only)} color="#f59e0b" />
+              <StatCard label="Tareas abiertas" value={Number(open_tasks_only)} color="#f59e0b" />
+              <StatCard label="Ambos" value={Number(both_reasons)} color="#ef4444" />
             </div>
           </CardBody>
         </Card>
       )}
 
-      {/* Distribuciones */}
+      {/* ── Row 4: Actividad reciente ── */}
+      {stats.recentActivity.length > 0 && (
+        <Card>
+          <CardHeader className="pb-0">
+            <h2 className="text-base font-semibold">Actividad reciente</h2>
+          </CardHeader>
+          <CardBody>
+            <div className="flex flex-col divide-y divide-gray-100">
+              {stats.recentActivity.map((item) => {
+                const details = typeof item.details === "string"
+                  ? (() => { try { return JSON.parse(item.details); } catch { return {}; } })()
+                  : item.details;
+                const userName = [item.user_name, item.user_last_name].filter(Boolean).join(" ") || "Sistema";
+                return (
+                  <div key={item.log_id} className="flex items-start justify-between py-2.5 gap-3">
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-700 shrink-0">{userName}</span>
+                        <span className="text-xs text-gray-400">·</span>
+                        <Link
+                          href={`/epp/${item.epp_id}`}
+                          className="text-xs text-blue-500 hover:underline shrink-0"
+                        >
+                          {item.epp_code}
+                        </Link>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        <span className="font-medium text-gray-600">{logTypeLabel(item.type)}</span>
+                        {" — "}
+                        {formatLogDetails(item.type, details)}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                      {timeAgo(item.created_at)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ── Row 5: Distribuciones ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.byInstitution.length > 0 && (
           <Card>
