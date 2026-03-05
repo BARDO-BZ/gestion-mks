@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import { Card, CardBody, Spinner } from "@heroui/react";
 
+function parsePhotos(raw: string[] | string | null | undefined): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function toProxyUrl(url: string) {
+  return `/api/blob-proxy?url=${encodeURIComponent(url)}`;
+}
+
 interface EppInspectionsListProps {
   eppId: string;
   refreshKey: number;
@@ -17,6 +27,7 @@ interface Inspection {
   performed_at: string;
   user_name?: string;
   user_last_name?: string;
+  photos?: string[] | string | null;
 }
 
 export function EppInspectionsList({
@@ -91,6 +102,21 @@ export function EppInspectionsList({
                 )}
               </div>
             </div>
+
+              {parsePhotos(ins.photos).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {parsePhotos(ins.photos).map((url, i) => (
+                    <a key={i} href={toProxyUrl(url)} target="_blank" rel="noopener noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={toProxyUrl(url)}
+                        alt={`Foto ${i + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
           </CardBody>
         </Card>
       ))}

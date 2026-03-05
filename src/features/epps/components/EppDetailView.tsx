@@ -20,6 +20,7 @@ import { EppInspectionsList } from "./EppInspectionsList";
 import { EppInspectionForm } from "./EppInspectionForm";
 import { EppLogs } from "./EppLogs";
 import { useAuth } from "@/contexts/AuthContext";
+import { logTypeLabel, formatLogDetails } from "@/features/epps/utils/formatLogEntry";
 
 interface Epp {
   id: number;
@@ -317,20 +318,22 @@ export function EppDetailView({ id }: Props) {
                 No hay actividad registrada todavía.
               </span>
             )}
-            {logs.map((log) => (
-              <div key={log.id} className="flex flex-col gap-0.5">
-                <span className="font-semibold">
-                  {log.type} – {new Date(log.created_at).toLocaleString()}
-                </span>
-                {log.details && (
-                  <span className="text-default-500">
-                    {typeof log.details === "string"
-                      ? log.details
-                      : JSON.stringify(log.details)}
-                  </span>
-                )}
-              </div>
-            ))}
+            {logs.map((log) => {
+              const detail = formatLogDetails(log.type, log.details);
+              return (
+                <div key={log.id} className="flex flex-col gap-0.5">
+                  <div className="flex justify-between gap-2">
+                    <span className="font-semibold">{logTypeLabel(log.type)}</span>
+                    <span className="text-default-400 shrink-0">
+                      {new Date(log.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  {detail && (
+                    <span className="text-default-500">{detail}</span>
+                  )}
+                </div>
+              );
+            })}
           </CardBody>
         </Card>
         <div className="flex flex-col gap-3 mt-4">

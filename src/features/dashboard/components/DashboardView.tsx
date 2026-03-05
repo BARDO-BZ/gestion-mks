@@ -62,8 +62,8 @@ export function DashboardView() {
 
   useEffect(() => {
     fetch("/api/dashboard/stats", { credentials: "include" })
-      .then((r) => r.json())
-      .then(setStats)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => { if (json) setStats(json); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);

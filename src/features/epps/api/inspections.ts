@@ -12,6 +12,7 @@ interface CreateInspectionBody {
   externa_comment?: string;
   create_task?: boolean;
   task_description?: string;
+  photos?: string[]; // Vercel Blob URLs
 }
 
 export async function listInspectionsHandler(req: NextRequest, eppId: string) {
@@ -63,12 +64,17 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
       );
     }
 
+    const photosJson =
+      Array.isArray(body.photos) && body.photos.length > 0
+        ? JSON.stringify(body.photos)
+        : null;
+
     // Insertar inspección
     const [result]: any = await connection.execute(
       `INSERT INTO inspections
        (epp_id, performed_by, blindaje_status, blindaje_comment,
-        externa_status, externa_comment)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+        externa_status, externa_comment, photos)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         Number(eppId),
         user.id,
@@ -76,6 +82,7 @@ export async function createInspectionHandler(req: NextRequest, eppId: string) {
         body.blindaje_comment || null,
         body.externa_status,
         body.externa_comment || null,
+        photosJson,
       ],
     );
 

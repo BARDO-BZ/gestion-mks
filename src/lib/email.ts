@@ -24,7 +24,7 @@ export async function sendEmail({ to, subject, html, text }: EmailData) {
       to,
       subject,
       html,
-      text: text || html.replace(/<[^>]*>/g, ""), // fallback a texto plano
+      text: text || html.replace(/<[^>]*>/g, ""),
     });
 
     console.log("Email enviado:", info.messageId);
