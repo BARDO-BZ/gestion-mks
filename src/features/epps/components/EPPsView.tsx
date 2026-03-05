@@ -100,9 +100,10 @@ export function EppsView() {
       <div className="flex justify-between items-center gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Gestión de EPP</h1>
 
-        <div className="flex gap-2 items-center w-[500px]">
+        <div className="flex gap-2 items-center">
           <Input
             size="md"
+            className="w-72"
             placeholder={
               isAdmin
                 ? "Buscar por código, institución, servicio..."
@@ -111,13 +112,13 @@ export function EppsView() {
             value={search}
             onValueChange={setSearch}
           />
-          <Button onPress={() => fetchData()} isDisabled={loading}>
+          <Button onPress={() => fetchData()} isDisabled={loading} className="shrink-0">
             {loading ? "Cargando..." : "Buscar"}
           </Button>
-          <Button variant="flat" onPress={onImportOpen}>
+          <Button variant="flat" onPress={onImportOpen} className="shrink-0">
             Importar CSV
           </Button>
-          <Button className="w-[100px]" color="primary" onPress={onOpen}>
+          <Button color="primary" onPress={onOpen} className="shrink-0">
             Nuevo EPP
           </Button>
         </div>
