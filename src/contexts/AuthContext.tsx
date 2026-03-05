@@ -20,6 +20,7 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: IRegisterData) => Promise<void>;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -128,12 +129,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUser = async () => {
+    await checkAuth();
+  };
+
   const value = {
     user,
     loading,
     login,
     logout,
     register,
+    refreshUser,
     isAuthenticated: !!user,
   };
 

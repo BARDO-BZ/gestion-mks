@@ -14,9 +14,12 @@ export async function getReportHandler(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const institution_id = searchParams.get("institution_id") || "";
     const status = searchParams.get("status") || "";
-    const caducidad_from = searchParams.get("caducidad_from") || ""; // YYYY-MM
-    const caducidad_to = searchParams.get("caducidad_to") || "";     // YYYY-MM
-    const format = searchParams.get("format") || "json";             // json | csv
+    const branch = searchParams.get("branch") || "";
+    const caducidad_from = searchParams.get("caducidad_from") || "";
+    const caducidad_to = searchParams.get("caducidad_to") || "";
+    const expiring_months = searchParams.get("expiring_months") || ""; // "1" | "3" | "6"
+    const pending_inspection = searchParams.get("pending_inspection") === "1";
+    const format = searchParams.get("format") || "json";
 
     const whereParts: string[] = ["e.status != 'DELETED'"];
     const values: any[] = [];
@@ -38,6 +41,11 @@ export async function getReportHandler(req: NextRequest) {
       values.push(status);
     }
 
+    if (branch) {
+      whereParts.push("e.branch = ?");
+      values.push(branch);
+    }
+
     if (caducidad_from) {
       const [year, month] = caducidad_from.split("-");
       whereParts.push(
@@ -52,6 +60,31 @@ export async function getReportHandler(req: NextRequest) {
         "(e.caducidad_year < ? OR (e.caducidad_year = ? AND e.caducidad_month <= ?))"
       );
       values.push(Number(year), Number(year), Number(month));
+    }
+
+    // Próximos vencimientos: caducidad dentro de los próximos N meses
+    if (expiring_months) {
+      const n = Number(expiring_months);
+      whereParts.push(
+        `STR_TO_DATE(CONCAT(e.caducidad_year, '-', LPAD(e.caducidad_month, 2, '0'), '-01'), '%Y-%m-%d')
+          BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? MONTH)`
+      );
+      values.push(n);
+    }
+
+    // Inspecciones pendientes: nunca inspeccionado o vencido según frecuencia
+    if (pending_inspection) {
+      whereParts.push(`(
+        (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1) IS NULL
+        OR (
+          e.inspection_freq = 'ANUAL' AND
+          (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1) < DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        )
+        OR (
+          e.inspection_freq = 'SEMESTRAL' AND
+          (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1) < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        )
+      )`);
     }
 
     const whereSql = `WHERE ${whereParts.join(" AND ")}`;

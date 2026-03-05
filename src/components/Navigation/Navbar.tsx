@@ -56,7 +56,6 @@ const ALL_ITEMS: NavItem[] = [
     href: "/settings",
     label: "Configuración",
     Icon: SettingsIcon,
-    roles: ["admin"],
   },
 ];
 
