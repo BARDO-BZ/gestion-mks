@@ -46,7 +46,7 @@ export async function forgotPasswordHandler(body: IForgotPasswordBody) {
     // Actualizar contraseña y limpiar token
     await connection.execute(
       `UPDATE users
-       SET password_hash = ?, reset_token = '', reset_token_expiry = '1970-01-01 00:00:00', updated_at = CURRENT_TIMESTAMP
+       SET password_hash = ?, reset_token = '', reset_token_expiry = '2000-01-01 00:00:00', updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [hashedPassword, user.id],
     );
