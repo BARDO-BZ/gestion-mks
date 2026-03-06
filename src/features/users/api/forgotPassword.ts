@@ -12,14 +12,14 @@ export async function forgotPasswordHandler(body: IForgotPasswordBody) {
   if (!token || !password) {
     return NextResponse.json(
       { message: "Token y contraseña son requeridos" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (password.length < 8) {
     return NextResponse.json(
       { message: "La contraseña debe tener al menos 8 caracteres" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -27,13 +27,13 @@ export async function forgotPasswordHandler(body: IForgotPasswordBody) {
     // Buscar usuario con token válido
     const [rows] = await connection.execute<IUserWithToken[]>(
       'SELECT id, email, reset_token, reset_token_expiry FROM users WHERE reset_token = ? AND reset_token_expiry > NOW() AND status = "active"',
-      [token]
+      [token],
     );
 
     if (rows.length === 0) {
       return NextResponse.json(
         { message: "Token inválido o expirado" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,9 +46,9 @@ export async function forgotPasswordHandler(body: IForgotPasswordBody) {
     // Actualizar contraseña y limpiar token
     await connection.execute(
       `UPDATE users
-       SET password_hash = ?, reset_token = '', reset_token_expiry = NULL, updated_at = CURRENT_TIMESTAMP
+       SET password_hash = ?, reset_token = '', reset_token_expiry = '', updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [hashedPassword, user.id]
+      [hashedPassword, user.id],
     );
 
     return NextResponse.json({
@@ -58,7 +58,7 @@ export async function forgotPasswordHandler(body: IForgotPasswordBody) {
     console.error("Error en reset-password:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
