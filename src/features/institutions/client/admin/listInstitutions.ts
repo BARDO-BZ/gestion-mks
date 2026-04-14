@@ -3,6 +3,7 @@ export type InstitutionStatus = "active" | "inactive";
 export type AdminInstitutionRow = {
   id: number;
   name: string;
+  account_number: string | null;
   status: InstitutionStatus;
   created_at: string;
   users_count: number;
