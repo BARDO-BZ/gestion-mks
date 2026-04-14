@@ -7,6 +7,7 @@ interface ImportRow {
   code: string;
   branch: string;
   service: string;
+  epp_type?: string;
   fabrication_year: number;
   fabrication_month?: number;
   caducidad_years?: number;
@@ -72,6 +73,7 @@ export async function importEppsHandler(req: NextRequest) {
       const code = String(row.code ?? "").trim();
       const branch = String(row.branch ?? "").trim();
       const service = String(row.service ?? "").trim();
+      const epp_type = row.epp_type ? String(row.epp_type).trim() : null;
       const fabrication_year = Number(row.fabrication_year);
       const fabrication_month = row.fabrication_month ? Number(row.fabrication_month) : 1;
       const caducidad_years = row.caducidad_years ? Number(row.caducidad_years) : 5;
@@ -140,17 +142,18 @@ export async function importEppsHandler(req: NextRequest) {
       try {
         const [result]: any = await connection.execute(
           `INSERT INTO epps
-            (code, institution_id, branch, service,
+            (code, institution_id, branch, service, epp_type,
              fabrication_month, fabrication_year,
              caducidad_month, caducidad_year,
              caducidad_years, inspection_freq,
              status, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             code,
             institution_id,
             branch,
             service,
+            epp_type,
             fabrication_month,
             fabrication_year,
             caducidad_month,

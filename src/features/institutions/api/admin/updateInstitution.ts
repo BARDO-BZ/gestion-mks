@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { requireAdmin } from "@/lib/authz";
 
-type Body = { name?: string };
+type Body = { name?: string; account_number?: string | null };
 
 export async function updateInstitutionHandler(req: NextRequest, id: string) {
   try {
@@ -16,6 +16,9 @@ export async function updateInstitutionHandler(req: NextRequest, id: string) {
 
     const body = (await req.json().catch(() => ({}))) as Body;
     const name = (body.name || "").trim();
+    const account_number = body.account_number !== undefined
+      ? (body.account_number ? String(body.account_number).trim() : null)
+      : undefined;
 
     if (!name) {
       return NextResponse.json(
@@ -35,13 +38,17 @@ export async function updateInstitutionHandler(req: NextRequest, id: string) {
       );
     }
 
-    await connection.execute(`UPDATE institutions SET name = ? WHERE id = ?`, [
-      name,
-      idNum,
-    ]);
+    if (account_number !== undefined) {
+      await connection.execute(
+        `UPDATE institutions SET name = ?, account_number = ? WHERE id = ?`,
+        [name, account_number, idNum],
+      );
+    } else {
+      await connection.execute(`UPDATE institutions SET name = ? WHERE id = ?`, [name, idNum]);
+    }
 
     const [rows]: any = await connection.execute(
-      `SELECT id, name, status, created_at FROM institutions WHERE id = ?`,
+      `SELECT id, name, account_number, status, created_at FROM institutions WHERE id = ?`,
       [idNum],
     );
 

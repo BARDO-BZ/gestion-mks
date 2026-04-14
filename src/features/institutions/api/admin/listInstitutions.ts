@@ -7,6 +7,7 @@ export type InstitutionStatus = "active" | "inactive";
 export interface AdminInstitutionRow {
   id: number;
   name: string;
+  account_number: string | null;
   status: InstitutionStatus;
   created_at: string;
   users_count: number;
@@ -63,6 +64,7 @@ export async function listInstitutionsHandler(req: NextRequest) {
       SELECT
         i.id,
         i.name,
+        i.account_number,
         i.status,
         i.created_at,
         COUNT(DISTINCT u.id) AS users_count,

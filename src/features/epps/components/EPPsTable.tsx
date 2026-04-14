@@ -20,12 +20,14 @@ export interface Epp {
   institution_name?: string | null;
   branch: string;
   service: string;
+  epp_type?: string | null;
   status: "APPROVED" | "RESERVED" | "TO_DISCARD" | "DISCARDED" | string;
   fabrication_year: number;
   fabrication_month: number;
   caducidad_year: number;
   caducidad_month: number;
   open_tasks_count?: number;
+  inspection_overdue?: boolean | number;
 }
 
 interface EppsTableProps {
@@ -35,12 +37,12 @@ interface EppsTableProps {
 
 export function EppsTable({ data, isAdmin }: EppsTableProps) {
   const columns: Array<{ key: string; label: string }> = [
-    { key: "code", label: "CODE" },
+    { key: "code", label: "CÓDIGO" },
     ...(isAdmin ? [{ key: "institution", label: "INSTITUCIÓN" }] : []),
     { key: "branch", label: "SUCURSAL" },
     { key: "service", label: "SERVICIO" },
+    { key: "epp_type", label: "TIPO EPP" },
     { key: "status", label: "ESTADO" },
-    { key: "fabrication", label: "FABRICACIÓN" },
     { key: "caducidad", label: "CADUCIDAD" },
   ];
 
@@ -54,7 +56,9 @@ export function EppsTable({ data, isAdmin }: EppsTableProps) {
 
       <TableBody emptyContent="No hay EPP cargados">
         {data.map((epp) => {
-          // ✅ Celdas: también armadas como array (sin null/false)
+          const hasOpenTasks = (epp.open_tasks_count ?? 0) > 0;
+          const inspOverdue = Boolean(epp.inspection_overdue);
+
           const cells: Array<{ key: string; node: React.ReactNode }> = [
             {
               key: "code",
@@ -77,22 +81,24 @@ export function EppsTable({ data, isAdmin }: EppsTableProps) {
               : []),
             { key: "branch", node: epp.branch },
             { key: "service", node: epp.service },
+            { key: "epp_type", node: epp.epp_type ?? "—" },
             {
               key: "status",
               node: (
-                <div className="flex items-center gap-2">
-                  <span>{eppStatusLabel(epp.status)}</span>
-                  {(epp.open_tasks_count ?? 0) > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="shrink-0">{eppStatusLabel(epp.status)}</span>
+                  {hasOpenTasks && (
                     <Chip size="sm" color="warning" variant="flat">
-                      {epp.open_tasks_count} tareas
+                      {epp.open_tasks_count} tarea{(epp.open_tasks_count ?? 0) !== 1 ? "s" : ""}
+                    </Chip>
+                  )}
+                  {inspOverdue && (
+                    <Chip size="sm" color="danger" variant="flat">
+                      Insp. vencida
                     </Chip>
                   )}
                 </div>
               ),
-            },
-            {
-              key: "fabrication",
-              node: `${epp.fabrication_month}/${epp.fabrication_year}`,
             },
             {
               key: "caducidad",

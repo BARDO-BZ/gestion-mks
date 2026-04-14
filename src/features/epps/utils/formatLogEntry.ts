@@ -10,6 +10,8 @@ export function logTypeLabel(type: string): string {
       return "Inspección";
     case "TASK_CLOSED":
       return "Tarea resuelta";
+    case "EDIT":
+      return "Edición";
     default:
       return type;
   }
@@ -54,6 +56,11 @@ export function formatLogDetails(type: string, details: unknown): string {
 
     case "TASK_CLOSED":
       return d.description ? `"${d.description}"` : "Tarea completada";
+
+    case "EDIT": {
+      const fields: string[] = d.fields ?? [];
+      return fields.length > 0 ? `Campos actualizados: ${fields.join(", ")}` : "Datos del EPP actualizados";
+    }
 
     default:
       return JSON.stringify(d);

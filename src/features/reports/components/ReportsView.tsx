@@ -141,6 +141,78 @@ export function ReportsView() {
     }
   };
 
+  const handleExportPDF = () => {
+    if (rows.length === 0) return;
+
+    const isAdminLocal = isAdmin;
+    const dateStr = new Date().toLocaleDateString("es-AR");
+
+    const headers = [
+      "Código",
+      ...(isAdminLocal ? ["Institución"] : []),
+      "Sucursal",
+      "Servicio",
+      "Estado",
+      "Fabricación",
+      "Caducidad",
+      "Frec. Insp.",
+      "Última insp.",
+      "Tareas",
+    ];
+
+    const tableRows = rows.map((r) => [
+      r.code,
+      ...(isAdminLocal ? [r.institution_name ?? "—"] : []),
+      r.branch ?? "—",
+      r.service ?? "—",
+      eppStatusLabel(r.status),
+      `${r.fabrication_month}/${r.fabrication_year}`,
+      `${r.caducidad_month}/${r.caducidad_year}`,
+      r.inspection_freq === "SEMESTRAL" ? "Semestral" : "Anual",
+      r.last_inspection_at
+        ? new Date(r.last_inspection_at).toLocaleDateString("es-AR")
+        : "—",
+      String(Number(r.open_tasks) || 0),
+    ]);
+
+    const thStyle = "border:1px solid #ccc;padding:4px 6px;background:#f0f0f0;font-weight:bold;font-size:10px;white-space:nowrap;";
+    const tdStyle = "border:1px solid #ddd;padding:3px 6px;font-size:10px;";
+
+    const theadHtml = `<tr>${headers.map((h) => `<th style="${thStyle}">${h}</th>`).join("")}</tr>`;
+    const tbodyHtml = tableRows
+      .map((row) => `<tr>${row.map((c) => `<td style="${tdStyle}">${c}</td>`).join("")}</tr>`)
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte EPPs — ${dateStr}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 16px; }
+    h1 { font-size: 15px; margin-bottom: 4px; }
+    p.sub { font-size: 11px; color: #666; margin-bottom: 12px; }
+    table { border-collapse: collapse; width: 100%; }
+    @media print { @page { margin: 1cm; size: landscape; } }
+  </style>
+</head>
+<body>
+  <h1>Reporte de EPPs</h1>
+  <p class="sub">Generado: ${dateStr} — ${rows.length} resultado${rows.length !== 1 ? "s" : ""}</p>
+  <table>
+    <thead>${theadHtml}</thead>
+    <tbody>${tbodyHtml}</tbody>
+  </table>
+  <script>window.onload = () => { window.print(); };<\/script>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) { alert("Bloqueaste ventanas emergentes. Habilitá los popups para esta página."); return; }
+    w.document.write(html);
+    w.document.close();
+  };
+
   const handleExportExcel = () => {
     if (rows.length === 0) return;
 
@@ -333,9 +405,14 @@ export function ReportsView() {
           {/* Tabla + botón export */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">{rows.length} resultado{rows.length !== 1 ? "s" : ""}</p>
-            <Button variant="flat" size="sm" onPress={handleExportExcel}>
-              Exportar Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="flat" size="sm" onPress={handleExportExcel}>
+                Exportar Excel
+              </Button>
+              <Button variant="flat" size="sm" onPress={handleExportPDF}>
+                Exportar PDF
+              </Button>
+            </div>
           </div>
 
           <Table aria-label="Reporte de EPPs" className="mt-1">

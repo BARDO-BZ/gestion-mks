@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import {
   Button,
   Select,
@@ -19,6 +20,7 @@ interface ParsedRow {
   code: string;
   branch: string;
   service: string;
+  epp_type: string;
   fabrication_year: number;
 }
 
@@ -38,61 +40,62 @@ interface EppImportModalProps {
   onClose: () => void;
 }
 
-// CSV parser that handles quoted fields
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
+// Normaliza el texto de un encabezado para comparación flexible
+function normalizeHeader(h: string): string {
+  return h.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-// Parse the MKS CSV format:
-// Row 0: Section headers (DATOS EPP, DATOS EVALUACIÓN, ...)
-// Row 1: Column names (#ID, TIPO EPP, SERVICIO, ALTA (año), ...)
-// Row 2+: Data
-function parseMKSCsv(text: string): ParsedRow[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trimEnd())
-    .filter((l) => l.length > 0);
+function findCol(headers: string[], ...candidates: string[]): number {
+  const normalized = headers.map(normalizeHeader);
+  for (const c of candidates) {
+    const idx = normalized.findIndex((h) => h.includes(normalizeHeader(c)));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
 
-  if (lines.length < 3) return [];
+function parseMKSExcel(workbook: XLSX.WorkBook): ParsedRow[] {
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  // Convertir a array de arrays (raw, sin encabezados automáticos)
+  const matrix: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
 
-  // Row 1 (index 1) has the column headers
-  const headers = parseCSVLine(lines[1]).map((h) => h.trim().toUpperCase());
+  if (matrix.length < 2) return [];
 
-  const idxCode = headers.findIndex((h) => h === "#ID");
-  const idxBranch = headers.findIndex((h) => h === "TIPO EPP");
-  const idxService = headers.findIndex((h) => h.startsWith("SERVICIO"));
-  const idxYear = headers.findIndex((h) => h.startsWith("ALTA"));
+  // Buscar fila de encabezados: la primera fila que tenga "#ID" o "CODIGO" o similar
+  let headerRowIdx = -1;
+  for (let i = 0; i < Math.min(matrix.length, 5); i++) {
+    const row = matrix[i].map((c) => String(c ?? ""));
+    const norm = row.map(normalizeHeader);
+    if (norm.some((h) => h.includes("ID") || h.includes("CODIGO") || h.includes("CDIGO"))) {
+      headerRowIdx = i;
+      break;
+    }
+  }
+  if (headerRowIdx < 0) headerRowIdx = 0; // fallback: primera fila
+
+  const rawHeaders = matrix[headerRowIdx].map((c) => String(c ?? ""));
+
+  const idxCode    = findCol(rawHeaders, "#ID", "ID", "CODIGO", "CÓDIGO", "SERIE");
+  const idxBranch  = findCol(rawHeaders, "SUCURSAL", "BRANCH");
+  const idxService = findCol(rawHeaders, "SERVICIO", "SERVICE");
+  const idxType    = findCol(rawHeaders, "TIPO EPP", "TIPO", "EPP TYPE", "EPPTYPE");
+  const idxYear    = findCol(rawHeaders, "ALTA", "AÑO", "ANO", "FAB", "FABRICACION", "FABRICACIÓN", "YEAR");
 
   const rows: ParsedRow[] = [];
 
-  for (let i = 2; i < lines.length; i++) {
-    const cols = parseCSVLine(lines[i]);
+  for (let i = headerRowIdx + 1; i < matrix.length; i++) {
+    const cols = matrix[i].map((c) => String(c ?? "").trim());
 
-    const code = idxCode >= 0 ? (cols[idxCode] ?? "").trim() : "";
-    const branch = idxBranch >= 0 ? (cols[idxBranch] ?? "").trim() : "";
-    const service = idxService >= 0 ? (cols[idxService] ?? "").trim() : "";
-    const yearRaw = idxYear >= 0 ? (cols[idxYear] ?? "").trim() : "";
+    const code    = idxCode    >= 0 ? cols[idxCode]    : "";
+    const branch  = idxBranch  >= 0 ? cols[idxBranch]  : "";
+    const service = idxService >= 0 ? cols[idxService] : "";
+    const epp_type = idxType   >= 0 ? cols[idxType]    : "";
+    const yearRaw = idxYear    >= 0 ? cols[idxYear]    : "";
     const fabrication_year = parseInt(yearRaw, 10);
 
-    if (!code) continue; // skip empty rows
+    if (!code) continue;
 
-    rows.push({ code, branch, service, fabrication_year });
+    rows.push({ code, branch, service, epp_type, fabrication_year });
   }
 
   return rows;
@@ -132,19 +135,20 @@ export function EppImportModal({ onImported, onClose }: EppImportModalProps) {
 
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const text = ev.target?.result as string;
       try {
-        const parsed = parseMKSCsv(text);
+        const data = ev.target?.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        const parsed = parseMKSExcel(workbook);
         if (parsed.length === 0) {
-          setParseError("No se encontraron filas válidas en el archivo.");
+          setParseError("No se encontraron filas válidas en el archivo. Verificá que el formato sea correcto.");
         } else {
           setRows(parsed);
         }
       } catch {
-        setParseError("Error al leer el archivo CSV.");
+        setParseError("Error al leer el archivo. Asegurate de subir un archivo Excel válido (.xlsx o .xls).");
       }
     };
-    reader.readAsText(file, "UTF-8");
+    reader.readAsArrayBuffer(file);
   };
 
   const handleImport = async () => {
@@ -187,6 +191,24 @@ export function EppImportModal({ onImported, onClose }: EppImportModalProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Formato esperado */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+        <p className="font-semibold text-blue-800 mb-1">Formato del archivo Excel</p>
+        <p className="text-blue-700 text-xs mb-2">
+          El archivo debe tener una fila de encabezados con las siguientes columnas (en cualquier orden):
+        </p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-blue-700">
+          <span><span className="font-mono font-semibold">#ID</span> — Código / Nº de serie (obligatorio)</span>
+          <span><span className="font-mono font-semibold">SUCURSAL</span> — Sucursal</span>
+          <span><span className="font-mono font-semibold">SERVICIO</span> — Servicio</span>
+          <span><span className="font-mono font-semibold">TIPO EPP</span> — Tipo de EPP</span>
+          <span><span className="font-mono font-semibold">ALTA</span> — Año de fabricación</span>
+        </div>
+        <p className="text-blue-600 text-xs mt-2">
+          Formatos soportados: <strong>.xlsx</strong> y <strong>.xls</strong>
+        </p>
+      </div>
+
       {/* Institution selector (admin only) */}
       {isAdmin && (
         <div>
@@ -213,14 +235,11 @@ export function EppImportModal({ onImported, onClose }: EppImportModalProps) {
 
       {/* File input */}
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">Archivo CSV</p>
-        <p className="text-xs text-gray-500">
-          Usá el formato de la planilla MKS (con encabezados en fila 2).
-        </p>
+        <p className="text-sm font-medium">Archivo Excel</p>
         <input
           ref={fileRef}
           type="file"
-          accept=".csv"
+          accept=".xlsx,.xls"
           onChange={handleFile}
           className="mt-1 text-sm"
         />
@@ -244,16 +263,18 @@ export function EppImportModal({ onImported, onClose }: EppImportModalProps) {
             >
               <TableHeader>
                 <TableColumn>Código</TableColumn>
-                <TableColumn>Tipo EPP</TableColumn>
+                <TableColumn>Sucursal</TableColumn>
                 <TableColumn>Servicio</TableColumn>
+                <TableColumn>Tipo EPP</TableColumn>
                 <TableColumn>Año alta</TableColumn>
               </TableHeader>
               <TableBody>
                 {rows.slice(0, 100).map((r, i) => (
                   <TableRow key={i}>
                     <TableCell>{r.code}</TableCell>
-                    <TableCell>{r.branch}</TableCell>
-                    <TableCell>{r.service}</TableCell>
+                    <TableCell>{r.branch || "—"}</TableCell>
+                    <TableCell>{r.service || "—"}</TableCell>
+                    <TableCell>{r.epp_type || "—"}</TableCell>
                     <TableCell>{r.fabrication_year || "—"}</TableCell>
                   </TableRow>
                 ))}

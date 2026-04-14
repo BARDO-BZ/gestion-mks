@@ -191,7 +191,7 @@ export function EppInspectionForm({
           </Select>
 
           <Textarea
-            label="Comentarios externos"
+            label="Comentarios exterior"
             minRows={2}
             value={externaComment}
             onValueChange={setExternaComment}
@@ -223,7 +223,9 @@ export function EppInspectionForm({
       {/* Fotos */}
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium">Fotos</p>
-        <p className="text-xs text-gray-400">JPG, PNG, WEBP o HEIC · máx 10MB por foto</p>
+        <p className="text-xs text-gray-400">
+          JPG, PNG, WEBP o HEIC · máx 10MB por foto
+        </p>
         <input
           ref={fileInputRef}
           type="file"

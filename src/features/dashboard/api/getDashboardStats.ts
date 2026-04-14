@@ -192,6 +192,26 @@ export async function getDashboardStatsHandler(req: NextRequest) {
       ${institutionFilter.replace(/e\.institution_id/g, "e.institution_id")}
     `);
 
+    // 10b. Lista de EPPs con tareas abiertas (más tareas primero)
+    const [openTasksList]: any = await connection.execute(`
+      SELECT
+        e.id,
+        e.code,
+        i.name AS institution_name,
+        e.branch,
+        e.service,
+        COUNT(t.id) AS open_tasks_count
+      FROM epp_tasks t
+      JOIN epps e ON e.id = t.epp_id
+      LEFT JOIN institutions i ON i.id = e.institution_id
+      WHERE t.status = 'OPEN'
+      AND e.status != 'DELETED'
+      ${institutionFilter}
+      GROUP BY e.id, e.code, i.name, e.branch, e.service
+      ORDER BY open_tasks_count DESC
+      LIMIT 8
+    `);
+
     // 11. Actividad reciente — últimos 8 movimientos
     const [recentActivity]: any = await connection.execute(`
       SELECT
@@ -223,6 +243,7 @@ export async function getDashboardStatsHandler(req: NextRequest) {
       pendingInspectionCount: pendingInspRows[0]?.count ?? 0,
       pendingInspectionList: pendingInspList,
       openTasksTotal: openTasksRows[0]?.count ?? 0,
+      openTasksList,
       recentActivity,
     });
   } catch (error) {

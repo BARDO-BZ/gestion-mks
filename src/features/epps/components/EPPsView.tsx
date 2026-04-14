@@ -1,7 +1,8 @@
 // src/components/epp/EppsView.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Button,
@@ -18,11 +19,12 @@ import { EppForm } from "./EppForm";
 import { EppImportModal } from "./EppImportModal";
 import { useAuth } from "@/contexts/AuthContext";
 
-type SortBy = "default" | "institution" | "service" | "next_inspection" | "open_tasks";
+type SortBy = "default" | "institution" | "branch" | "service" | "next_inspection" | "open_tasks";
 
 const SORT_OPTIONS: { key: SortBy; label: string }[] = [
   { key: "default",          label: "Predeterminado" },
   { key: "institution",      label: "Por institución" },
+  { key: "branch",           label: "Por sucursal" },
   { key: "service",          label: "Por servicio" },
   { key: "next_inspection",  label: "Próximas inspecciones" },
   { key: "open_tasks",       label: "Tareas pendientes" },
@@ -31,11 +33,16 @@ const SORT_OPTIONS: { key: SortBy; label: string }[] = [
 const PAGE_SIZE = 20;
 
 export function EppsView() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Inicializar estado desde URL params para persistencia
   const [data, setData] = useState<Epp[]>([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SortBy>("default");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [sortBy, setSortBy] = useState<SortBy>(() => (searchParams.get("sort") as SortBy) ?? "default");
+  const [page, setPage] = useState(() => parseInt(searchParams.get("page") ?? "1", 10));
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -50,12 +57,22 @@ export function EppsView() {
   } = useDisclosure();
   const debouncedSearch = useDebounce(search, 500);
 
-  const fetchData = async (currentPage = page) => {
+  // Sincronizar estado con URL params
+  const updateUrlParams = useCallback((newSearch: string, newSort: SortBy, newPage: number) => {
+    const params = new URLSearchParams();
+    if (newSearch) params.set("search", newSearch);
+    if (newSort !== "default") params.set("sort", newSort);
+    if (newPage > 1) params.set("page", String(newPage));
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+  }, [router, pathname]);
+
+  const fetchData = async (currentPage = page, currentSearch = debouncedSearch, currentSort = sortBy) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      params.set("sortBy", sortBy);
+      if (currentSearch) params.set("search", currentSearch);
+      params.set("sortBy", currentSort);
       params.set("page", String(currentPage));
       params.set("pageSize", String(PAGE_SIZE));
 
@@ -81,7 +98,8 @@ export function EppsView() {
   useEffect(() => {
     skipPageEffect.current = true;
     setPage(1);
-    fetchData(1);
+    updateUrlParams(debouncedSearch, sortBy, 1);
+    fetchData(1, debouncedSearch, sortBy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, sortBy]);
 
@@ -91,7 +109,8 @@ export function EppsView() {
       skipPageEffect.current = false;
       return;
     }
-    fetchData(page);
+    updateUrlParams(debouncedSearch, sortBy, page);
+    fetchData(page, debouncedSearch, sortBy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -106,17 +125,17 @@ export function EppsView() {
             className="w-72"
             placeholder={
               isAdmin
-                ? "Buscar por código, institución, servicio..."
-                : "Buscar por código, servicio..."
+                ? "Buscar por código, institución, tipo, servicio..."
+                : "Buscar por código, tipo, servicio..."
             }
             value={search}
             onValueChange={setSearch}
           />
-          <Button onPress={() => fetchData()} isDisabled={loading} className="shrink-0">
+          <Button onPress={() => fetchData(page, search, sortBy)} isDisabled={loading} className="shrink-0">
             {loading ? "Cargando..." : "Buscar"}
           </Button>
           <Button variant="flat" onPress={onImportOpen} className="shrink-0">
-            Importar CSV
+            Importar Excel
           </Button>
           <Button color="primary" onPress={onOpen} className="shrink-0">
             Nuevo EPP
@@ -175,7 +194,7 @@ export function EppsView() {
                 Nuevo EPP
               </ModalHeader>
               <ModalBody>
-                <EppForm onCreated={fetchData} onClose={close} />
+                <EppForm onCreated={() => fetchData(page, debouncedSearch, sortBy)} onClose={close} />
               </ModalBody>
               <ModalFooter />
             </>
@@ -188,11 +207,11 @@ export function EppsView() {
           {(close) => (
             <>
               <ModalHeader className="flex flex-col gap-1">
-                Importar EPPs desde CSV
+                Importar EPPs desde Excel
               </ModalHeader>
               <ModalBody>
                 <EppImportModal
-                  onImported={() => { fetchData(); }}
+                  onImported={() => fetchData(page, debouncedSearch, sortBy)}
                   onClose={close}
                 />
               </ModalBody>

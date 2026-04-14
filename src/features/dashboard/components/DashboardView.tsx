@@ -27,6 +27,15 @@ interface PendingInspItem {
   last_inspection_at: string | null;
 }
 
+interface OpenTaskItem {
+  id: number;
+  code: string;
+  institution_name: string;
+  branch: string;
+  service: string;
+  open_tasks_count: number;
+}
+
 interface ActivityItem {
   log_id: number;
   type: string;
@@ -49,6 +58,7 @@ interface DashboardStats {
   pendingInspectionCount: number;
   pendingInspectionList: PendingInspItem[];
   openTasksTotal: number;
+  openTasksList: OpenTaskItem[];
   recentActivity: ActivityItem[];
 }
 
@@ -190,7 +200,7 @@ export function DashboardView() {
         </CardBody>
       </Card>
 
-      {/* ── Row 2: Vencimientos + Inspecciones pendientes ── */}
+      {/* ── Row 2: Vencimientos + Inspecciones pendientes + Tareas pendientes ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Próximos vencimientos */}
         <Card>
@@ -269,6 +279,39 @@ export function DashboardView() {
           </CardBody>
         </Card>
       </div>
+
+      {/* ── Row 2b: Tareas pendientes ── */}
+      {(stats.openTasksList?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader className="pb-0 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Tareas pendientes</h2>
+            <span className="text-xs text-gray-400">más tareas primero</span>
+          </CardHeader>
+          <CardBody>
+            <div className="flex flex-col divide-y divide-gray-100">
+              {stats.openTasksList.map((epp) => (
+                <Link
+                  key={epp.id}
+                  href={`/epp/${epp.id}`}
+                  className="flex items-center justify-between py-2.5 hover:bg-gray-50 rounded-lg px-1 -mx-1 transition-colors group"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium group-hover:text-blue-600 transition-colors">
+                      {epp.code}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {[epp.institution_name, epp.branch, epp.service].filter(Boolean).join(" · ")}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-amber-600 shrink-0 ml-2">
+                    {Number(epp.open_tasks_count)} tarea{Number(epp.open_tasks_count) !== 1 ? "s" : ""}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* ── Row 3: RESERVED breakdown ── */}
       {totalReserved > 0 && (

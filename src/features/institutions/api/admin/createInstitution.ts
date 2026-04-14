@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/authz";
 
 type Body = {
   name?: string;
+  account_number?: string | null;
   status?: "active" | "inactive";
 };
 
@@ -15,6 +16,7 @@ export async function createInstitutionHandler(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as Body;
 
     const name = (body.name || "").trim();
+    const account_number = body.account_number ? String(body.account_number).trim() : null;
     const status = (body.status || "active") as "active" | "inactive";
 
     if (!name) {
@@ -36,14 +38,14 @@ export async function createInstitutionHandler(req: NextRequest) {
     }
 
     const [result]: any = await connection.execute(
-      `INSERT INTO institutions (name, status) VALUES (?, ?)`,
-      [name, status],
+      `INSERT INTO institutions (name, account_number, status) VALUES (?, ?, ?)`,
+      [name, account_number, status],
     );
 
     const insertedId = Number(result.insertId);
 
     const [rows]: any = await connection.execute(
-      `SELECT id, name, status, created_at FROM institutions WHERE id = ?`,
+      `SELECT id, name, account_number, status, created_at FROM institutions WHERE id = ?`,
       [insertedId],
     );
 

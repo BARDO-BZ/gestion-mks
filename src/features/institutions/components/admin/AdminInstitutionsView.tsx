@@ -81,11 +81,11 @@ export function AdminInstitutionsView() {
     }
   };
 
-  const handleRename = async (id: number, name: string) => {
+  const handleRename = async (id: number, name: string, account_number: string | null) => {
     setError(null);
     setBusyId(id);
     try {
-      await updateInstitutionName(id, name);
+      await updateInstitutionName(id, name, account_number);
       await load();
     } catch (e: any) {
       setError(e.message || "Error al editar institución");

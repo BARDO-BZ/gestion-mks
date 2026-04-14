@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Input, Select, SelectItem, Spinner } from "@heroui/react";
-import { MONTHS } from "@/data";
+import { Button, Input, Select, SelectItem, Spinner, Textarea } from "@heroui/react";
 import { useAuth } from "@/contexts/AuthContext";
 
 type InspectionFrequency = "ANNUAL" | "SEMESTRAL";
@@ -29,6 +28,8 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
   const [institutionId, setInstitutionId] = useState<string>("");
   const [branch, setBranch] = useState("");
   const [service, setService] = useState("");
+  const [eppType, setEppType] = useState("");
+  const [details, setDetails] = useState("");
   const [fabricationYear, setFabricationYear] = useState("");
   const [caducidadYears, setCaducidadYears] = useState("5");
   const [inspectionFreq, setInspectionFreq] =
@@ -67,6 +68,8 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
         code,
         branch,
         service,
+        epp_type: eppType || null,
+        details: details || null,
         fabrication_month: 1,
         fabrication_year: Number(fabricationYear),
         caducidad_years: Number(caducidadYears),
@@ -142,7 +145,22 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
           value={service}
           onValueChange={setService}
         />
+        <Input
+          label="Tipo de EPP"
+          placeholder="Ej: Arnés, Casco, Guantes..."
+          value={eppType}
+          onValueChange={setEppType}
+        />
       </div>
+
+      <Textarea
+        label="Detalles"
+        placeholder="color, marca, etc."
+        value={details}
+        onValueChange={setDetails}
+        minRows={2}
+        maxRows={4}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Input
@@ -165,18 +183,18 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
             return <SelectItem key={y}>{y}</SelectItem>;
           })}
         </Select>
-      </div>
 
-      <Select
-        label="Frecuencia de inspección"
-        selectedKeys={new Set([inspectionFreq])}
-        onSelectionChange={(keys) =>
-          setInspectionFreq(Array.from(keys)[0] as InspectionFrequency)
-        }
-      >
-        <SelectItem key="ANNUAL">Anual</SelectItem>
-        <SelectItem key="SEMESTRAL">Semestral</SelectItem>
-      </Select>
+        <Select
+          label="Frecuencia de inspección"
+          selectedKeys={new Set([inspectionFreq])}
+          onSelectionChange={(keys) =>
+            setInspectionFreq(Array.from(keys)[0] as InspectionFrequency)
+          }
+        >
+          <SelectItem key="ANNUAL">Anual</SelectItem>
+          <SelectItem key="SEMESTRAL">Semestral</SelectItem>
+        </Select>
+      </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 

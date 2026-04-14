@@ -40,6 +40,9 @@ export async function createEppHandler(req: NextRequest) {
       inspection_freq,
     } = body;
 
+    const epp_type = (body as any).epp_type ? String((body as any).epp_type).trim() : null;
+    const details = (body as any).details ? String((body as any).details).trim() : null;
+
     if (
       !code ||
       !branch ||
@@ -128,17 +131,19 @@ export async function createEppHandler(req: NextRequest) {
 
     const [result]: any = await connection.execute(
       `INSERT INTO epps
-        (code, institution_id, branch, service,
+        (code, institution_id, branch, service, epp_type, details,
          fabrication_month, fabrication_year,
          caducidad_month, caducidad_year,
          caducidad_years, inspection_freq,
          status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         code,
         institution_id,
         branch,
         service,
+        epp_type,
+        details,
         fabrication_month,
         fabrication_year,
         caducidad_month,

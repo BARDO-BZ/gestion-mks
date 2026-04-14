@@ -22,43 +22,50 @@ const statusLabel: Record<InstitutionStatus, string> = {
   inactive: "Inactiva",
 };
 
+interface EditDraft {
+  name: string;
+  account_number: string;
+}
+
 export function AdminInstitutionsTable(props: {
   rows: AdminInstitutionRow[];
   busyId: number | null;
-  onRename: (id: number, name: string) => Promise<void>;
+  onRename: (id: number, name: string, account_number: string | null) => Promise<void>;
   onToggleStatus: (id: number, next: InstitutionStatus) => Promise<void>;
 }) {
   const { rows, busyId, onRename, onToggleStatus } = props;
 
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draftName, setDraftName] = useState("");
+  const [draft, setDraft] = useState<EditDraft>({ name: "", account_number: "" });
 
   const columns = useMemo(
     () => [
-      { key: "name", label: "NOMBRE" },
-      { key: "status", label: "ESTADO" },
-      { key: "users", label: "USUARIOS" },
-      { key: "epps", label: "EPPS" },
-      { key: "created", label: "CREADA" },
-      { key: "actions", label: "ACCIONES" },
+      { key: "name",           label: "NOMBRE" },
+      { key: "account_number", label: "CUENTA" },
+      { key: "status",         label: "ESTADO" },
+      { key: "users",          label: "USUARIOS" },
+      { key: "epps",           label: "EPPS" },
+      { key: "created",        label: "CREADA" },
+      { key: "actions",        label: "ACCIONES" },
     ],
     [],
   );
 
   const startEdit = (r: AdminInstitutionRow) => {
     setEditingId(r.id);
-    setDraftName(r.name);
+    setDraft({ name: r.name, account_number: r.account_number ?? "" });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setDraftName("");
+    setDraft({ name: "", account_number: "" });
   };
 
   const saveEdit = async (id: number) => {
-    const name = draftName.trim();
+    const name = draft.name.trim();
     if (!name) return;
-    await onRename(id, name);
+    const account_number = draft.account_number.trim() || null;
+    await onRename(id, name, account_number);
     cancelEdit();
   };
 
@@ -82,14 +89,34 @@ export function AdminInstitutionsTable(props: {
                   {isEditing ? (
                     <Input
                       size="sm"
-                      value={draftName}
-                      onValueChange={setDraftName}
+                      value={draft.name}
+                      onValueChange={(v) => setDraft((d) => ({ ...d, name: v }))}
                       isDisabled={isBusy}
+                      label="Nombre"
                     />
                   ) : (
                     <span className="font-medium">{r.name}</span>
                   )}
                 </div>
+              </TableCell>
+
+              <TableCell>
+                {isEditing ? (
+                  <Input
+                    size="sm"
+                    value={draft.account_number}
+                    onValueChange={(v) => setDraft((d) => ({ ...d, account_number: v }))}
+                    isDisabled={isBusy}
+                    placeholder="Nº de cuenta"
+                    type="text"
+                    inputMode="numeric"
+                    label="Cuenta"
+                  />
+                ) : (
+                  <span className="text-sm text-default-500 font-mono">
+                    {r.account_number ?? "—"}
+                  </span>
+                )}
               </TableCell>
 
               <TableCell>
@@ -117,7 +144,7 @@ export function AdminInstitutionsTable(props: {
                         size="sm"
                         color="primary"
                         onPress={() => saveEdit(r.id)}
-                        isDisabled={isBusy || !draftName.trim()}
+                        isDisabled={isBusy || !draft.name.trim()}
                       >
                         Guardar
                       </Button>

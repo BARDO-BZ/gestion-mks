@@ -18,6 +18,7 @@ import {
 import { EppTasksList } from "./EppTasksList";
 import { EppInspectionsList } from "./EppInspectionsList";
 import { EppInspectionForm } from "./EppInspectionForm";
+import { EppEditForm } from "./EppEditForm";
 import { EppLogs } from "./EppLogs";
 import { useAuth } from "@/contexts/AuthContext";
 import { logTypeLabel, formatLogDetails } from "@/features/epps/utils/formatLogEntry";
@@ -30,6 +31,8 @@ interface Epp {
   institution?: string | null; // legacy fallback
   branch: string;
   service: string;
+  epp_type?: string | null;
+  details?: string | null;
   fabrication_month: number;
   fabrication_year: number;
   caducidad_month: number;
@@ -71,10 +74,16 @@ export function EppDetailView({ id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isEditOpen,
+    onOpen: onEditOpen,
+    onClose: onEditClose,
+  } = useDisclosure();
   const [inspectionsKey, setInspectionsKey] = useState(0);
 
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [discarding, setDiscarding] = useState(false);
 
   const [tasksKey, setTasksKey] = useState(0);
   const handleTaskUpdated = () => {
@@ -87,6 +96,29 @@ export function EppDetailView({ id }: Props) {
     setInspectionsKey((prev) => prev + 1);
     // refresca EPP (estado) y logs
     fetchEpp();
+  };
+
+  const handleDiscard = async () => {
+    if (!confirm("¿Confirmás que querés marcar este EPP como Descartado? Esta acción es manual y quedará registrada.")) return;
+    setDiscarding(true);
+    setStatusError(null);
+    try {
+      const res = await fetch(`/api/epps/${id}/status`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useComputed: false, status: "DISCARDED" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Error al actualizar el estado");
+      }
+      await fetchEpp();
+    } catch (err: any) {
+      setStatusError(err.message ?? "Error inesperado");
+    } finally {
+      setDiscarding(false);
+    }
   };
 
   const handleApplySuggestedStatus = async () => {
@@ -193,9 +225,14 @@ export function EppDetailView({ id }: Props) {
         <h1 className="text-2xl font-semibold">
           EPP #{epp.id} – {epp.code}
         </h1>
-        <Button variant="light" onPress={() => router.push("/epp")}>
-          Volver al listado
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="flat" onPress={onEditOpen}>
+            Editar
+          </Button>
+          <Button variant="light" onPress={() => router.back()}>
+            Volver al listado
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -253,19 +290,32 @@ export function EppDetailView({ id }: Props) {
                 )}
               </div>
 
-              {needsStatusUpdate && (
-                <Button
-                  size="sm"
-                  color="primary"
-                  variant="flat"
-                  onPress={handleApplySuggestedStatus}
-                  isDisabled={updatingStatus}
-                >
-                  {updatingStatus
-                    ? "Actualizando..."
-                    : "Aplicar estado sugerido"}
-                </Button>
-              )}
+              <div className="flex flex-col gap-2">
+                {needsStatusUpdate && (
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="flat"
+                    onPress={handleApplySuggestedStatus}
+                    isDisabled={updatingStatus || discarding}
+                  >
+                    {updatingStatus
+                      ? "Actualizando..."
+                      : "Aplicar estado sugerido"}
+                  </Button>
+                )}
+                {epp.status !== "DISCARDED" && (
+                  <Button
+                    size="sm"
+                    color="danger"
+                    variant="flat"
+                    onPress={handleDiscard}
+                    isDisabled={discarding || updatingStatus}
+                  >
+                    {discarding ? "Descartando..." : "Marcar como Descartado"}
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
 
@@ -291,6 +341,10 @@ export function EppDetailView({ id }: Props) {
               <span>{epp.service}</span>
             </div>
             <div className="flex flex-col gap-1">
+              <span className="font-semibold">Tipo de EPP</span>
+              <span>{epp.epp_type || "—"}</span>
+            </div>
+            <div className="flex flex-col gap-1">
               <span className="font-semibold">Fabricación</span>
               <span>{fabricationLabel}</span>
             </div>
@@ -304,6 +358,12 @@ export function EppDetailView({ id }: Props) {
               <span className="font-semibold">Frecuencia de inspección</span>
               <span>{inspectionLabel}</span>
             </div>
+            {epp.details && (
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <span className="font-semibold">Detalles</span>
+                <span className="whitespace-pre-wrap">{epp.details}</span>
+              </div>
+            )}
           </CardBody>
         </Card>
 
@@ -372,6 +432,25 @@ export function EppDetailView({ id }: Props) {
                   <EppInspectionForm
                     eppId={id}
                     onCreated={handleInspectionCreated}
+                    onClose={close}
+                  />
+                </ModalBody>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+
+        <Modal isOpen={isEditOpen} onClose={onEditClose} size="xl">
+          <ModalContent>
+            {(close) => (
+              <>
+                <ModalHeader className="flex flex-col gap-1">
+                  Editar EPP
+                </ModalHeader>
+                <ModalBody>
+                  <EppEditForm
+                    epp={epp}
+                    onUpdated={() => { fetchEpp(); close(); }}
                     onClose={close}
                   />
                 </ModalBody>

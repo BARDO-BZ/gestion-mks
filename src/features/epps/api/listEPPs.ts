@@ -14,7 +14,6 @@ export async function listEppsHandler(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
-    // 👇 este filtro ahora se interpreta como "nombre institución"
     const institution = searchParams.get("institution") || "";
     const branch = searchParams.get("branch") || "";
     const service = searchParams.get("service") || "";
@@ -25,7 +24,7 @@ export async function listEppsHandler(req: NextRequest) {
     const whereParts: string[] = [];
     const values: any[] = [];
 
-    // ✅ Gate por institución para CLIENT
+    // Gate por institución para CLIENT
     if (user.role !== "admin") {
       if (!user.institution_id) {
         return NextResponse.json(
@@ -37,8 +36,6 @@ export async function listEppsHandler(req: NextRequest) {
       values.push(user.institution_id);
     }
 
-    // ✅ Filtros
-    // institution -> ahora filtra por nombre de institutions (JOIN)
     if (institution) {
       whereParts.push("i.name LIKE ?");
       values.push(`%${institution}%`);
@@ -57,9 +54,35 @@ export async function listEppsHandler(req: NextRequest) {
     }
     if (search) {
       whereParts.push(
-        "(e.code LIKE ? OR i.name LIKE ? OR e.branch LIKE ? OR e.service LIKE ?)",
+        "(e.code LIKE ? OR i.name LIKE ? OR e.branch LIKE ? OR e.service LIKE ? OR e.epp_type LIKE ?)",
       );
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    // Para la vista "Tareas pendientes": solo EPPs con tareas abiertas O inspección vencida
+    if (sortBy === "open_tasks") {
+      whereParts.push(`(
+        (SELECT COUNT(*) FROM epp_tasks t WHERE t.epp_id = e.id AND t.status = 'OPEN') > 0
+        OR (
+          CASE WHEN e.inspection_freq = 'SEMESTRAL' THEN
+            NOW() > DATE_ADD(
+              COALESCE(
+                (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1),
+                STR_TO_DATE(CONCAT(e.fabrication_year,'-',LPAD(e.fabrication_month,2,'0'),'-01'),'%Y-%m-%d')
+              ),
+              INTERVAL 6 MONTH
+            )
+          ELSE
+            NOW() > DATE_ADD(
+              COALESCE(
+                (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1),
+                STR_TO_DATE(CONCAT(e.fabrication_year,'-',LPAD(e.fabrication_month,2,'0'),'-01'),'%Y-%m-%d')
+              ),
+              INTERVAL 12 MONTH
+            )
+          END
+        ) = 1
+      )`);
     }
 
     const whereSql =
@@ -90,26 +113,53 @@ export async function listEppsHandler(req: NextRequest) {
       ELSE 6
     END`;
 
-    // Oldest first within RESERVED and APPROVED
     const oldestFirst = `
       CASE WHEN e.status IN ('RESERVED','APPROVED') THEN e.fabrication_year  ELSE 0 END ASC,
       CASE WHEN e.status IN ('RESERVED','APPROVED') THEN e.fabrication_month ELSE 0 END ASC`;
 
     const openTasksSubquery = `(SELECT COUNT(*) FROM epp_tasks t WHERE t.epp_id = e.id AND t.status = 'OPEN')`;
 
+    const inspectionOverdueExpr = `
+      CASE WHEN e.inspection_freq = 'SEMESTRAL' THEN
+        NOW() > DATE_ADD(
+          COALESCE(
+            (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1),
+            STR_TO_DATE(CONCAT(e.fabrication_year,'-',LPAD(e.fabrication_month,2,'0'),'-01'),'%Y-%m-%d')
+          ),
+          INTERVAL 6 MONTH
+        )
+      ELSE
+        NOW() > DATE_ADD(
+          COALESCE(
+            (SELECT performed_at FROM inspections ins WHERE ins.epp_id = e.id ORDER BY ins.performed_at DESC LIMIT 1),
+            STR_TO_DATE(CONCAT(e.fabrication_year,'-',LPAD(e.fabrication_month,2,'0'),'-01'),'%Y-%m-%d')
+          ),
+          INTERVAL 12 MONTH
+        )
+      END
+    `;
+
     let orderBy: string;
     switch (sortBy) {
+      // Por institución → sucursal → servicio → tipo EPP → estado
       case "institution":
-        orderBy = `i.name ASC, ${statusPriority} ASC, ${oldestFirst}, e.service ASC`;
+        orderBy = `i.name ASC, e.branch ASC, e.service ASC, COALESCE(e.epp_type,'') ASC, ${statusPriority} ASC`;
         break;
+      // Por sucursal → servicio → tipo EPP → estado
+      case "branch":
+        orderBy = `e.branch ASC, e.service ASC, COALESCE(e.epp_type,'') ASC, ${statusPriority} ASC`;
+        break;
+      // Por servicio → tipo EPP → estado
       case "service":
-        orderBy = `e.service ASC, ${statusPriority} ASC, ${oldestFirst}`;
+        orderBy = `e.service ASC, COALESCE(e.epp_type,'') ASC, ${statusPriority} ASC`;
         break;
+      // Próximas inspecciones → institución → sucursal → estado → tipo EPP → servicio
       case "next_inspection":
-        orderBy = `${statusPriority} ASC, e.caducidad_year ASC, e.caducidad_month ASC, i.name ASC, e.service ASC`;
+        orderBy = `e.caducidad_year ASC, e.caducidad_month ASC, i.name ASC, e.branch ASC, ${statusPriority} ASC, COALESCE(e.epp_type,'') ASC, e.service ASC`;
         break;
+      // Tareas pendientes: tareas DESC, luego inspección vencida, luego institución → sucursal → estado
       case "open_tasks":
-        orderBy = `${openTasksSubquery} DESC, ${statusPriority} ASC, ${oldestFirst}, i.name ASC, e.service ASC`;
+        orderBy = `${openTasksSubquery} DESC, (${inspectionOverdueExpr}) DESC, i.name ASC, e.branch ASC, ${statusPriority} ASC, COALESCE(e.epp_type,'') ASC, e.service ASC`;
         break;
       default:
         orderBy = `${statusPriority} ASC, ${oldestFirst}, i.name ASC, e.service ASC`;
@@ -119,7 +169,8 @@ export async function listEppsHandler(req: NextRequest) {
       SELECT
         e.*,
         i.name AS institution_name,
-        ${openTasksSubquery} AS open_tasks_count
+        ${openTasksSubquery} AS open_tasks_count,
+        (${inspectionOverdueExpr}) AS inspection_overdue
       FROM epps e
       LEFT JOIN institutions i ON i.id = e.institution_id
       ${whereSql}

@@ -2,6 +2,7 @@ import type { InstitutionStatus } from "./listInstitutions";
 
 export async function createInstitution(input: {
   name: string;
+  account_number?: string | null;
   status?: InstitutionStatus;
 }) {
   const res = await fetch("/api/admin/institutions", {

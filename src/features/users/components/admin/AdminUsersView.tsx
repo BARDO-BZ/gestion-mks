@@ -43,7 +43,7 @@ export function AdminUsersView() {
   const [institutions, setInstitutions] = useState<InstitutionOption[]>([]);
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<UserStatus | "all">("pending");
+  const [status, setStatus] = useState<UserStatus | "all">("all");
   const [institutionId, setInstitutionId] = useState<number | "all" | "null">("all");
 
   const [page, setPage] = useState(1);

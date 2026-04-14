@@ -5,12 +5,13 @@ import { Button, Input, Select, SelectItem } from "@heroui/react";
 import type { InstitutionStatus } from "@/features/institutions/api/admin/listInstitutions";
 
 export function CreateInstitutionForm(props: {
-  onSubmit: (data: { name: string; status: InstitutionStatus }) => void;
+  onSubmit: (data: { name: string; account_number: string | null; status: InstitutionStatus }) => void;
   onCancel: () => void;
 }) {
   const { onSubmit, onCancel } = props;
 
   const [name, setName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [status, setStatus] = useState<InstitutionStatus>("active");
   const [saving, setSaving] = useState(false);
 
@@ -21,7 +22,7 @@ export function CreateInstitutionForm(props: {
 
     setSaving(true);
     try {
-      await onSubmit({ name: clean, status });
+      await onSubmit({ name: clean, account_number: accountNumber.trim() || null, status });
     } finally {
       setSaving(false);
     }
@@ -35,6 +36,16 @@ export function CreateInstitutionForm(props: {
         value={name}
         onValueChange={setName}
         isRequired
+      />
+
+      <Input
+        label="Cuenta"
+        placeholder="Nº de cliente en sistema externo"
+        value={accountNumber}
+        onValueChange={setAccountNumber}
+        description="Número de al menos 19 dígitos para identificar al cliente"
+        type="text"
+        inputMode="numeric"
       />
 
       <Select
