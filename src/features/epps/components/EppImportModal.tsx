@@ -233,9 +233,29 @@ export function EppImportModal({ onImported, onClose }: EppImportModalProps) {
         </div>
       )}
 
-      {/* File input */}
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">Archivo Excel</p>
+      {/* File input + template download */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">Archivo Excel</p>
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={() => {
+              const XLSX = require("xlsx");
+              const wb = XLSX.utils.book_new();
+              const ws = XLSX.utils.aoa_to_sheet([
+                ["#ID", "SUCURSAL", "SERVICIO", "TIPO EPP", "ALTA"],
+                ["EPP-001", "Sucursal Norte", "Guardia", "Delantal", "2022"],
+                ["EPP-002", "Sucursal Sur",   "UCI",     "Anteojos", "2023"],
+              ]);
+              ws["!cols"] = [20, 20, 20, 20, 10].map((w) => ({ wch: w }));
+              XLSX.utils.book_append_sheet(wb, ws, "EPPs");
+              XLSX.writeFile(wb, "plantilla-importacion-epps.xlsx");
+            }}
+          >
+            Descargar plantilla
+          </Button>
+        </div>
         <input
           ref={fileRef}
           type="file"

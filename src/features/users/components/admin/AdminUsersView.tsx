@@ -12,6 +12,7 @@ import {
 import { AdminUsersFilters } from "./AdminUsersFilters";
 import { AdminUsersTable } from "./AdminUsersTable";
 import { ApproveUserModal } from "./ApproveUserModal";
+import { CreateUserModal } from "./CreateUserModal";
 
 export type UserStatus = "pending" | "active" | "inactive";
 export type UserRole = "admin" | "client";
@@ -52,6 +53,7 @@ export function AdminUsersView() {
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserRow | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
@@ -195,9 +197,14 @@ export function AdminUsersView() {
             </p>
           </div>
 
-          <Button variant="light" onPress={refresh}>
-            Refrescar
-          </Button>
+          <div className="flex gap-2">
+            <Button color="primary" onPress={() => setCreateOpen(true)}>
+              Nuevo usuario
+            </Button>
+            <Button variant="light" onPress={refresh}>
+              Refrescar
+            </Button>
+          </div>
         </CardHeader>
         <Divider />
         <CardBody className="flex flex-col gap-4">
@@ -257,6 +264,13 @@ export function AdminUsersView() {
           </div>
         </CardBody>
       </Card>
+
+      <CreateUserModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        institutions={institutions}
+        onCreated={refresh}
+      />
 
       <ApproveUserModal
         isOpen={approveOpen}

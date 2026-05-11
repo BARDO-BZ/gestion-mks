@@ -21,7 +21,6 @@ import { EppInspectionForm } from "./EppInspectionForm";
 import { EppEditForm } from "./EppEditForm";
 import { EppLogs } from "./EppLogs";
 import { useAuth } from "@/contexts/AuthContext";
-import { logTypeLabel, formatLogDetails } from "@/features/epps/utils/formatLogEntry";
 
 interface Epp {
   id: number;
@@ -51,13 +50,6 @@ interface Epp {
   last_inspection_at?: string | null;
 }
 
-interface EppLog {
-  id: number;
-  type: string;
-  details: any;
-  created_at: string;
-}
-
 interface Props {
   id: string;
 }
@@ -69,7 +61,6 @@ export function EppDetailView({ id }: Props) {
   const isAdmin = user?.role === "admin";
 
   const [epp, setEpp] = useState<Epp | null>(null);
-  const [logs, setLogs] = useState<EppLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +71,7 @@ export function EppDetailView({ id }: Props) {
     onClose: onEditClose,
   } = useDisclosure();
   const [inspectionsKey, setInspectionsKey] = useState(0);
+  const [logsKey, setLogsKey] = useState(0);
 
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -88,13 +80,13 @@ export function EppDetailView({ id }: Props) {
   const [tasksKey, setTasksKey] = useState(0);
   const handleTaskUpdated = () => {
     setTasksKey((prev) => prev + 1);
-    fetchEpp(); // para refrescar estado y actividad reciente
+    setLogsKey((prev) => prev + 1);
+    fetchEpp();
   };
 
   const handleInspectionCreated = () => {
-    // refresca inspecciones
     setInspectionsKey((prev) => prev + 1);
-    // refresca EPP (estado) y logs
+    setLogsKey((prev) => prev + 1);
     fetchEpp();
   };
 
@@ -164,7 +156,6 @@ export function EppDetailView({ id }: Props) {
 
       const data = await res.json();
       setEpp(data.epp);
-      setLogs(data.logs || []);
     } catch (err: any) {
       console.error(err);
       setError(err.message ?? "Error inesperado");
@@ -367,98 +358,70 @@ export function EppDetailView({ id }: Props) {
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <p className="font-semibold text-sm">Actividad reciente</p>
-          </CardHeader>
-          <Divider />
-          <CardBody className="text-xs flex flex-col gap-2 max-h-[260px] overflow-auto">
-            {logs.length === 0 && (
-              <span className="text-default-400">
-                No hay actividad registrada todavía.
-              </span>
-            )}
-            {logs.map((log) => {
-              const detail = formatLogDetails(log.type, log.details);
-              return (
-                <div key={log.id} className="flex flex-col gap-0.5">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-semibold">{logTypeLabel(log.type)}</span>
-                    <span className="text-default-400 shrink-0">
-                      {new Date(log.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  {detail && (
-                    <span className="text-default-500">{detail}</span>
-                  )}
-                </div>
-              );
-            })}
-          </CardBody>
-        </Card>
-        <div className="flex flex-col gap-3 mt-4">
-          <h2 className="text-xl font-semibold">Actividad</h2>
-          <EppLogs id={id} />
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">Actividad</p>
+          <EppLogs key={logsKey} id={id} />
         </div>
-        {/* Inspecciones */}
-        <div className="flex flex-col gap-3 mt-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Inspecciones</h2>
-            <Button color="primary" onPress={onOpen}>
-              Nueva inspección
-            </Button>
-          </div>
-          <EppInspectionsList eppId={id} refreshKey={inspectionsKey} />
-        </div>
-
-        {/* Tareas */}
-        <div className="flex flex-col gap-3 mt-4">
-          <h2 className="text-xl font-semibold">Tareas</h2>
-          <EppTasksList
-            eppId={id}
-            refreshKey={tasksKey}
-            onTaskUpdated={handleTaskUpdated}
-          />
-        </div>
-
-        <Modal isOpen={isOpen} onClose={onClose} size="lg">
-          <ModalContent>
-            {(close) => (
-              <>
-                <ModalHeader className="flex flex-col gap-1">
-                  Nueva inspección
-                </ModalHeader>
-                <ModalBody>
-                  <EppInspectionForm
-                    eppId={id}
-                    onCreated={handleInspectionCreated}
-                    onClose={close}
-                  />
-                </ModalBody>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
-
-        <Modal isOpen={isEditOpen} onClose={onEditClose} size="xl">
-          <ModalContent>
-            {(close) => (
-              <>
-                <ModalHeader className="flex flex-col gap-1">
-                  Editar EPP
-                </ModalHeader>
-                <ModalBody>
-                  <EppEditForm
-                    epp={epp}
-                    onUpdated={() => { fetchEpp(); close(); }}
-                    onClose={close}
-                  />
-                </ModalBody>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
       </div>
+
+      {/* Inspecciones - full width */}
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Inspecciones</h2>
+          <Button color="primary" onPress={onOpen}>
+            Nueva inspección
+          </Button>
+        </div>
+        <EppInspectionsList eppId={id} refreshKey={inspectionsKey} />
+      </div>
+
+      {/* Tareas - full width */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Tareas</h2>
+        <EppTasksList
+          eppId={id}
+          refreshKey={tasksKey}
+          onTaskUpdated={handleTaskUpdated}
+        />
+      </div>
+
+      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+        <ModalContent>
+          {(close) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Nueva inspección
+              </ModalHeader>
+              <ModalBody>
+                <EppInspectionForm
+                  eppId={id}
+                  onCreated={handleInspectionCreated}
+                  onClose={close}
+                />
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isEditOpen} onClose={onEditClose} size="xl">
+        <ModalContent>
+          {(close) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Editar EPP
+              </ModalHeader>
+              <ModalBody>
+                <EppEditForm
+                  epp={epp}
+                  onUpdated={() => { fetchEpp(); close(); }}
+                  onClose={close}
+                />
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

@@ -145,12 +145,15 @@ export function EppForm({ onCreated, onClose }: EppFormProps) {
           value={service}
           onValueChange={setService}
         />
-        <Input
+        <Select
           label="Tipo de EPP"
-          placeholder="Ej: Arnés, Casco, Guantes..."
-          value={eppType}
-          onValueChange={setEppType}
-        />
+          selectedKeys={eppType ? new Set([eppType]) : new Set()}
+          onSelectionChange={(keys) => setEppType(String(Array.from(keys)[0] ?? ""))}
+        >
+          {["Delantal", "Conj-Chaleco", "Con-Pollera", "Tiroideo", "Anteojos", "Cortina", "Paciente", "Otro"].map((opt) => (
+            <SelectItem key={opt}>{opt}</SelectItem>
+          ))}
+        </Select>
       </div>
 
       <Textarea
