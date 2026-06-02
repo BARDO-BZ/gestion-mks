@@ -38,7 +38,7 @@ export async function createInstitutionHandler(req: NextRequest) {
     }
 
     const [result]: any = await connection.execute(
-      `INSERT INTO institutions (name, account_number, status) VALUES (?, ?, ?)`,
+      `INSERT INTO institutions (name, account_number, status, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
       [name, account_number, status],
     );
 
