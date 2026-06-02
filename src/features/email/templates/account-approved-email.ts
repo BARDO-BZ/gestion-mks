@@ -99,7 +99,7 @@ export function generateAccountApprovedEmail(userData: {
 
         <div class="footer">
           <p>Este email fue enviado automáticamente, por favor no respondas a esta dirección.</p>
-          <p>&copy; ${new Date().getFullYear()} MKS</p>
+          <p>&copy; ${new Date().getFullYear()} SmartCheck</p>
         </div>
       </div>
     </body>

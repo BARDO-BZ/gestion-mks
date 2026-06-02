@@ -70,7 +70,7 @@ function statusBadge(status: string) {
 function footer() {
   return `
     <div style="text-align:center;margin-top:32px;font-size:11px;color:#9ca3af;">
-      MKS Gestión · Protección Radiológica<br>
+      SmartCheck · Gestión de Estado de EPP Radiológicos<br>
       <a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "https://mksargentina.com"}" style="color:#6b7280;">Ir a la aplicación</a>
     </div>
   `;
@@ -92,7 +92,7 @@ export interface EppAlertItem {
 // ─── Template: Notificación diaria ───────────────────────────────────────────
 
 export function dailyNotificationTemplate(items: EppAlertItem[]): { subject: string; html: string } {
-  const subject = `[MKS] ${items.length} novedad${items.length !== 1 ? "es" : ""} en EPPs — ${new Date().toLocaleDateString("es-AR")}`;
+  const subject = `[SmartCheck] ${items.length} novedad${items.length !== 1 ? "es" : ""} en EPPs — ${new Date().toLocaleDateString("es-AR")}`;
 
   const rows = items.map((e) => `
     <tr>
@@ -145,7 +145,7 @@ export interface MonthlySummaryData {
 }
 
 export function monthlySummaryTemplate(data: MonthlySummaryData): { subject: string; html: string } {
-  const subject = `[MKS] Resumen mensual — ${data.month}`;
+  const subject = `[SmartCheck] Resumen mensual — ${data.month}`;
 
   const statusRows = data.byStatus.map((s) => `
     <tr>

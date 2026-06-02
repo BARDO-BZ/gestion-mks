@@ -11,7 +11,7 @@ export default function Home() {
         src="/logo.png"
         width={200}
         height={500}
-        alt="MKS - Protección radiológica"
+        alt="SmartCheck - Gestión de Estado de EPP Radiológicos"
       />
       <div className="w-full max-w-md mx-auto">
         <Tabs

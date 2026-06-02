@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MKS",
-  description: "",
+  title: "SmartCheck",
+  description: "Gestión de Estado de EPP Radiológicos",
 };
 
 export default function RootLayout({
