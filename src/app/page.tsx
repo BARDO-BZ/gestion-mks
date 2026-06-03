@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center mt-[5%] gap-12">
       <Image
-        src="/logo.png"
+        src="/logo-smart-check.png"
         width={200}
         height={500}
         alt="SmartCheck - Gestión de Estado de EPP Radiológicos"

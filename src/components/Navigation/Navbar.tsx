@@ -96,11 +96,11 @@ export default function Navbar() {
   }, [loading, user?.name, user?.lastName, user?.email]);
 
   return (
-    <aside className="w-[17%] pl-8 pr-8 pt-6 pb-6 flex flex-col h-[100vh] justify-between border-r border-gray-200">
+    <aside className="w-[17%] pl-8 pr-8 pt-12 pb-6 flex flex-col h-[100vh] justify-between border-r border-gray-200">
       <div>
         <Image
-          src="/logo.png"
-          width={100}
+          src="/logo-smart-check.png"
+          width={150}
           height={40}
           alt="SmartCheck - Gestión de Estado de EPP Radiológicos"
           className="mx-auto"
