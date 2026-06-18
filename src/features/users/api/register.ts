@@ -82,17 +82,18 @@ export async function registerHandler(req: NextRequest) {
     // Insertar usuario
     const [result] = await connection.execute(
       `INSERT INTO users (
-        email, 
-        password_hash, 
-        name, 
-        last_name, 
-        role, 
-        status, 
-        activation_token, 
-        activation_expires, 
-        created_at, 
+        email,
+        password_hash,
+        name,
+        last_name,
+        role,
+        status,
+        activation_token,
+        activation_expires,
+        reset_token,
+        created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       [
         email,
         hashedPassword,
