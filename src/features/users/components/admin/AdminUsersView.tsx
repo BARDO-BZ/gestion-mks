@@ -14,7 +14,7 @@ import { AdminUsersTable } from "./AdminUsersTable";
 import { ApproveUserModal } from "./ApproveUserModal";
 import { CreateUserModal } from "./CreateUserModal";
 
-export type UserStatus = "pending" | "active" | "inactive";
+export type UserStatus = "pending" | "active" | "archived";
 export type UserRole = "admin" | "client";
 
 export interface InstitutionOption {

@@ -10,7 +10,7 @@ type UserRow = {
   name: string | null;
   last_name: string | null;
   role: "admin" | "client";
-  status: "pending" | "active" | "inactive" | string;
+  status: "pending" | "active" | "archived" | string;
   institution_id: number | null;
 };
 

@@ -11,7 +11,7 @@ export interface AuthUser {
   name: string | null;
   last_name: string | null;
   role: UserRole;
-  status: "active" | "pending" | "inactive" | string;
+  status: "active" | "pending" | "archived" | string;
   institution_id: number | null;
 }
 

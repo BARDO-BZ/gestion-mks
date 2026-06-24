@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connection from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 
-type UserStatus = "pending" | "active" | "inactive";
+type UserStatus = "pending" | "active" | "archived";
 
 export async function listUsersAdminHandler(req: NextRequest) {
   const auth = await getAuthUser(req);

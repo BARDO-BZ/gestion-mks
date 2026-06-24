@@ -50,7 +50,7 @@ export function AdminUsersFilters(props: {
           <SelectItem key="all">Todos</SelectItem>
           <SelectItem key="pending">Pendientes</SelectItem>
           <SelectItem key="active">Activos</SelectItem>
-          <SelectItem key="inactive">Inactivos</SelectItem>
+          <SelectItem key="archived">Dados de baja</SelectItem>
         </Select>
 
         <Select

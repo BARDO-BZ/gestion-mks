@@ -51,8 +51,8 @@ export async function createUserAdminHandler(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const [result]: any = await connection.execute(
-      `INSERT INTO users (email, password_hash, name, last_name, role, status, institution_id, reset_token, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      `INSERT INTO users (email, password_hash, name, last_name, role, status, institution_id, reset_token, reset_token_expiry, activation_token, activation_expires, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       [email, passwordHash, name, last_name, role, status, institutionIdNum ?? null],
     );
 

@@ -21,7 +21,7 @@ import type {
 const statusLabel: Record<string, string> = {
   pending: "Pendiente",
   active: "Activo",
-  inactive: "Inactivo",
+  archived: "Dado de baja",
 };
 
 export function AdminUsersTable(props: {
@@ -108,13 +108,13 @@ export function AdminUsersTable(props: {
                   <Button
                     size="sm"
                     variant="bordered"
-                    onPress={() => onUpdateStatus(u.id, "inactive")}
+                    onPress={() => onUpdateStatus(u.id, "archived")}
                   >
                     Dar de baja
                   </Button>
                 )}
 
-                {u.status === "inactive" && (
+                {u.status === "archived" && (
                   <Button
                     size="sm"
                     variant="bordered"

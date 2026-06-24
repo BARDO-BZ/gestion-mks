@@ -10,7 +10,7 @@ type UserRow = {
   status: string;
 };
 
-const ALLOWED_STATUS = new Set(["pending", "active", "inactive"]);
+const ALLOWED_STATUS = new Set(["pending", "active", "archived"]);
 
 export async function updateUserStatusAdminHandler(
   req: NextRequest,
@@ -32,7 +32,7 @@ export async function updateUserStatusAdminHandler(
 
     if (!ALLOWED_STATUS.has(status)) {
       return NextResponse.json(
-        { message: "Status inválido. Use pending | active | inactive" },
+        { message: "Status inválido. Use pending | active | archived" },
         { status: 400 },
       );
     }
