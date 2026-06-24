@@ -7,6 +7,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "No autorizado" }, { status: 401 });
   }
 
-  const result = await sendMonthlySummary();
-  return NextResponse.json(result);
+  // Responde inmediatamente para no hacer timeout en cron-job.org
+  Promise.resolve().then(async () => {
+    try {
+      await sendMonthlySummary();
+    } catch (e) {
+      console.error("cron/monthly sendMonthlySummary error:", e);
+    }
+  });
+
+  return NextResponse.json({ started: true });
 }

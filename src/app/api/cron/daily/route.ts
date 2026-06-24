@@ -7,7 +7,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "No autorizado" }, { status: 401 });
   }
 
-  const result = await sendDailyNotification();
-  await notifyOverdueInspections().catch(() => {});
-  return NextResponse.json(result);
+  // Responde inmediatamente para no hacer timeout en cron-job.org
+  Promise.resolve().then(async () => {
+    try {
+      await sendDailyNotification();
+    } catch (e) {
+      console.error("cron/daily sendDailyNotification error:", e);
+    }
+    try {
+      await notifyOverdueInspections();
+    } catch (e) {
+      console.error("cron/daily notifyOverdueInspections error:", e);
+    }
+  });
+
+  return NextResponse.json({ started: true });
 }
